@@ -1,4 +1,4 @@
-json-logic-js
+json-logic-py
 =============
 
 This parser accepts `JsonLogic <http://jsonlogic.com>`__ rules and

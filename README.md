@@ -1,4 +1,4 @@
-# json-logic-js
+# json-logic-py
 
 This parser accepts [JsonLogic](http://jsonlogic.com) rules and executes them in Python.
 This is a Python porting of the excellend GitHub project by [jwadhams](https://github.com/jwadhams) for JavaScript: [json-logic-js](https://github.com/jwadhams/json-logic-js).
