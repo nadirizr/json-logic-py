@@ -2,12 +2,14 @@ json-logic-py
 =============
 
 This parser accepts `JsonLogic <http://jsonlogic.com>`__ rules and
-executes them in Python. This is a Python porting of the excellend
-GitHub project by `jwadhams <https://github.com/jwadhams>`__ for
-JavaScript:
-`json-logic-js <https://github.com/jwadhams/json-logic-js>`__. All
-credit goes to him, this is simply an implementation of the same logic
-in Python (small differences below).
+executes them in Python.
+
+This is a Python porting of the excellent GitHub project by
+`jwadhams <https://github.com/jwadhams>`__ for JavaScript:
+`json-logic-js <https://github.com/jwadhams/json-logic-js>`__.
+
+All credit goes to him, this is simply an implementation of the same
+logic in Python (small differences below).
 
 The JsonLogic format is designed to allow you to share rules (logic)
 between front-end and back-end code (regardless of language difference),
@@ -28,6 +30,7 @@ Simple
 
 .. code:: python
 
+    from json_logic import jsonLogic
     jsonLogic( { "==" : [1, 1] } )
     # True
 
@@ -140,7 +143,7 @@ The best way to install this library is via
 
 .. code:: bash
 
-    pip install json-logic-py
+    pip install json-logic
 
 If that doesn't suit you, and you want to manage updates yourself, the
 entire library is self-contained in ``json_logic.py`` and you can
