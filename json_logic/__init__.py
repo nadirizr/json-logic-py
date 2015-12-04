@@ -42,7 +42,8 @@ def jsonLogic(tests, data=None):
         reduce(lambda data, key: (data.get(key, not_found)
                                   if type(data) == dict
                                   else data[int(key)]
-                                       if type(data) in [list, tuple]
+                                       if (type(data) in [list, tuple] and
+                                           str(key).lstrip("-").isdigit())
                                        else not_found),
                str(a).split("."),
                data)
@@ -60,6 +61,7 @@ def jsonLogic(tests, data=None):
     "/" : (lambda a, b=None: a if b is None else float(a) / float(b)),
     "min" : (lambda *args: min(args)),
     "max" : (lambda *args: max(args)),
+    "count": (lambda *args: sum(1 if a else 0 for a in args)),
   }
 
   if op not in operations:
