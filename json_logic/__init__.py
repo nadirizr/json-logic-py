@@ -2,6 +2,7 @@
 # https://github.com/jwadhams/json-logic-js
 
 import sys
+from six.moves import reduce
 
 def jsonLogic(tests, data=None):
   # You've recursed to a primitive, stop!
