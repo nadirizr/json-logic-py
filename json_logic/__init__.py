@@ -10,7 +10,7 @@ def jsonLogic(tests, data=None):
 
   data = data or {}
 
-  op = tests.keys()[0]
+  op = list(tests.keys())[0]
   values = tests[op]
   operations = {
     "=="  : (lambda a, b: a == b),
