@@ -65,7 +65,7 @@ def jsonLogic(tests, data=None):
   }
 
   if op not in operations:
-    raise RuntimeError("Unrecognized operation %s" % op)
+    raise ValueError("Unrecognized operation %s" % op)
 
   # Easy syntax for unary operators, like {"var": "x"} instead of strict
   # {"var": ["x"]}
