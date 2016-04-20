@@ -2,6 +2,7 @@
 # https://github.com/jwadhams/json-logic-js
 
 import sys
+from six.moves import reduce
 
 def jsonLogic(tests, data=None):
   # You've recursed to a primitive, stop!
@@ -10,7 +11,7 @@ def jsonLogic(tests, data=None):
 
   data = data or {}
 
-  op = tests.keys()[0]
+  op = list(tests.keys())[0]
   values = tests[op]
   operations = {
     "=="  : (lambda a, b: a == b),
