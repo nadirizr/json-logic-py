@@ -4,23 +4,14 @@
 import sys
 from six.moves import reduce
 
-def jsonLogic(tests, data=None):
-  # You've recursed to a primitive, stop!
-  if tests is None or type(tests) != dict:
-    return tests
-
-  data = data or {}
-
-  op = list(tests.keys())[0]
-  values = tests[op]
-  operations = {
+operations = {
     "=="  : (lambda a, b: a == b),
     "===" : (lambda a, b: a is b),
     "!="  : (lambda a, b: a != b),
     "!==" : (lambda a, b: a is not b),
     ">"   : (lambda a, b: a > b),
     ">="  : (lambda a, b: a >= b),
-    "<"   : (lambda a, b, c=None: 
+    "<"   : (lambda a, b, c=None:
         a < b if (c is None) else (a < b) and (b < c)
       ),
     "<="  : (lambda a, b, c=None:
@@ -28,7 +19,7 @@ def jsonLogic(tests, data=None):
       ),
     "!"   : (lambda a: not a),
     "%"   : (lambda a, b: a % b),
-    "and" : (lambda *args: 
+    "and" : (lambda *args:
         reduce(lambda total, arg: total and arg, args, True)
       ),
     "or"  : (lambda *args:
@@ -63,15 +54,42 @@ def jsonLogic(tests, data=None):
     "min" : (lambda *args: min(args)),
     "max" : (lambda *args: max(args)),
     "count": (lambda *args: sum(1 if a else 0 for a in args)),
-  }
+}
 
-  if op not in operations:
-    raise ValueError("Unrecognized operation %s" % op)
+
+def get_var(data, var_name, not_found=None):
+    try:
+        for key in str(var_name).split('.'):
+            try:
+                data = data[key]
+            except TypeError:
+                data = data[int(key)]
+    except (KeyError, TypeError):
+        return not_found
+    else:
+        return data
+
+
+def jsonLogic(tests, data=None):
+  # You've recursed to a primitive, stop!
+  if tests is None or type(tests) != dict:
+    return tests
+
+  data = data or {}
+
+  op = list(tests.keys())[0]
+  values = tests[op]
 
   # Easy syntax for unary operators, like {"var": "x"} instead of strict
   # {"var": ["x"]}
   if type(values) not in [list, tuple]:
     values = [values]
+
+  if op == 'var':
+    return get_var(data, *values)
+
+  if op not in operations:
+    raise ValueError("Unrecognized operation %s" % op)
 
   # Recursion!
   values = map(lambda val: jsonLogic(val, data), values)
