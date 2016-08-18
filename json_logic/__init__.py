@@ -30,16 +30,6 @@ operations = {
     "in"  : (lambda a, b:
         a in b if "__contains__" in dir(b) else False
       ),
-    "var" : (lambda a, not_found=None:
-        reduce(lambda data, key: (data.get(key, not_found)
-                                  if type(data) == dict
-                                  else data[int(key)]
-                                       if (type(data) in [list, tuple] and
-                                           str(key).lstrip("-").isdigit())
-                                       else not_found),
-               str(a).split("."),
-               data)
-      ),
     "cat" : (lambda *args:
         "".join(args)
       ),
