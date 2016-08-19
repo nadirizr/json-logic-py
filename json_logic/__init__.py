@@ -3,6 +3,9 @@
 
 import sys
 from six.moves import reduce
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def if_(*args):
@@ -93,7 +96,7 @@ operations = {
     "or": lambda *args: reduce(lambda total, arg: total or arg, args, False),
     "?:": lambda a, b, c: b if a else c,
     "if": if_,
-    "log": lambda a: a if sys.stdout.write(str(a)) else a,
+    "log": lambda a: logger.info(a) or a,
     "in": lambda a, b: a in b if "__contains__" in dir(b) else False,
     "cat": lambda *args: "".join(args),
     "+": lambda *args: sum(float(arg) for arg in args),
