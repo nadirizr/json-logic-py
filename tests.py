@@ -1,14 +1,21 @@
-from json_logic import jsonLogic
+"""
+Tests for jsonLogic.
+"""
 import unittest
+from json_logic import jsonLogic
 
 
 class JSONLogicTest(unittest.TestCase):
+    """
+    The tests here come from 'Supported operations' page on jsonlogic.com:
+    http://jsonlogic.com/operations.html
+    """
     def test_var(self):
-        # Retrieve data from the provided data object.
+        """Retrieve data from the provided data object."""
         self.assertEqual(
             jsonLogic(
-                { "var" : ["a"] },
-                { "a" : 1, "b" : 2 }
+                {"var": ["a"]},
+                {"a": 1, "b": 2}
             ),
             1
         )
@@ -17,8 +24,8 @@ class JSONLogicTest(unittest.TestCase):
         # single values.
         self.assertEqual(
             jsonLogic(
-                { "var" : "a" },
-                { "a" : 1, "b" : 2 }
+                {"var": "a"},
+                {"a": 1, "b": 2}
             ),
             1
         )
@@ -27,8 +34,8 @@ class JSONLogicTest(unittest.TestCase):
         # might be missing in the data object.
         self.assertEqual(
             jsonLogic(
-                { "var" : ["z", 26] },
-                { "a" : 1, "b" : 2 }
+                {"var": ["z", 26]},
+                {"a": 1, "b": 2}
             ),
             26
         )
@@ -37,20 +44,27 @@ class JSONLogicTest(unittest.TestCase):
         # the property of a property (to any depth you need):
         self.assertEqual(
             jsonLogic(
-                { "var" : "champ.name" },
+                {"var": "champ.name"},
                 {
-                    "champ" : { "name" : "Fezzig", "height" : 223 },
-                    "challenger" : { "name" : "Dread Pirate Roberts", "height" : 183 }
+                    "champ": {
+                        "name": "Fezzig",
+                        "height": 223
+                    },
+                    "challenger": {
+                        "name": "Dread Pirate Roberts",
+                        "height": 183
+                    }
                 }
             ),
             "Fezzig"
         )
 
-        # You can also use the var operator to access an array by numeric index:
+        # You can also use the var operator to access an array
+        # by numeric index:
         self.assertEqual(
             jsonLogic(
-                {"var" : 1 },
-                [ "apple", "banana", "carrot" ]
+                {"var": 1},
+                ["apple", "banana", "carrot"]
             ),
             "banana"
         )
@@ -61,18 +75,20 @@ class JSONLogicTest(unittest.TestCase):
         self.assertTrue(
             jsonLogic(
 
-                { "and" : [
-                    {"<" : [ { "var" : "temp" }, 110 ]},
-                    {"==" : [ { "var" : "pie.filling" }, "apple" ] }
-                ] },
-                { "temp" : 100, "pie" : { "filling" : "apple" } }
+                {"and": [
+                    {"<": [{"var": "temp"}, 110]},
+                    {"==": [{"var": "pie.filling"}, "apple"]}
+                ]},
+                {"temp": 100, "pie": {"filling": "apple"}}
             )
         )
 
     def test_missing(self):
-        # Takes an array of data keys to search for (same format as var).
-        # Returns an array of any keys that are missing from the data object,
-        # or an empty array.
+        """
+        Takes an array of data keys to search for (same format as var).
+        Returns an array of any keys that are missing from the data object,
+        or an empty array.
+        """
         self.assertEqual(
             jsonLogic(
                 {"missing": ["a", "b"]},
@@ -104,10 +120,12 @@ class JSONLogicTest(unittest.TestCase):
         )
 
     def test_missing_some(self):
-        # Takes a minimum number of data keys that are required, and an array
-        # of keys to search for (same format as var or missing). Returns
-        # an empty array if the minimum is met, or an array of the missing
-        # keys otherwise.
+        """
+        Takes a minimum number of data keys that are required, and an array
+        of keys to search for (same format as var or missing). Returns
+        an empty array if the minimum is met, or an array of the missing
+        keys otherwise.
+        """
         self.assertEqual(
             jsonLogic(
                 {"missing_some": [1, ["a", "b", "c"]]},
@@ -130,8 +148,8 @@ class JSONLogicTest(unittest.TestCase):
             jsonLogic(
                 {"if": [
                     {"merge": [
-                        {"missing":["first_name", "last_name"]},
-                        {"missing_some":[1, ["cell_phone", "home_phone"] ]},
+                        {"missing": ["first_name", "last_name"]},
+                        {"missing_some": [1, ["cell_phone", "home_phone"]]},
                     ]},
                     "We require first name, last name, and one phone number.",
                     "OK to proceed"
@@ -142,9 +160,10 @@ class JSONLogicTest(unittest.TestCase):
         )
 
     def test_if(self):
-        # The if statement typically takes 3 arguments: a condition (if),
-        # what to do if it's true (then), and what to do if it's false (else),
-        # like:
+        """
+        The if statement typically takes 3 arguments: a condition (if),
+        what to do if it's true (then), and what to do if it's false (else).
+        """
         self.assertEqual(
             jsonLogic(
                 {"if": [True, "yes", "no"]}
@@ -164,8 +183,8 @@ class JSONLogicTest(unittest.TestCase):
         self.assertEqual(
             jsonLogic(
                 {"if": [
-                    {"<": [{"var":"temp"}, 0] }, "freezing",
-                    {"<": [{"var":"temp"}, 100] }, "liquid",
+                    {"<": [{"var": "temp"}, 0]}, "freezing",
+                    {"<": [{"var": "temp"}, 100]}, "liquid",
                     "gas"
                 ]},
                 {"temp": 200}
@@ -174,34 +193,36 @@ class JSONLogicTest(unittest.TestCase):
         )
 
     def test_equality(self):
-        # Tests equality, with type coercion. Requires two arguments.
+        """Tests equality, with type coercion. Requires two arguments."""
         self.assertTrue(jsonLogic({"==": [1, 1]}))
         self.assertTrue(jsonLogic({"==": [1, "1"]}))
         self.assertTrue(jsonLogic({"==": [0, False]}))
 
     def test_stricy_equality(self):
-        # Tests strict equality. Requires two arguments.
+        """Tests strict equality. Requires two arguments."""
         self.assertTrue(jsonLogic({"===": [1, 1]}))
         self.assertFalse(jsonLogic({"===": [1, "1"]}))
 
     def test_nonequality(self):
-        # Tests not-equal, with type coercion.
+        """Tests not-equal, with type coercion."""
         self.assertTrue(jsonLogic({"!=": [1, 2]}))
         self.assertFalse(jsonLogic({"!=": [1, "1"]}))
 
     def test_strict_nonequality(self):
-        # Tests not-equal, with type coercion.
+        """Tests not-equal, with type coercion."""
         self.assertTrue(jsonLogic({"!==": [1, 2]}))
         self.assertTrue(jsonLogic({"!==": [1, "1"]}))
 
     def test_not(self):
-        # Logical negation ("not"). Takes just one argument.
+        """Logical negation ("not"). Takes just one argument."""
         self.assertFalse(jsonLogic({"!": [True]}))
         # Note: unary operators can also take a single, non array argument:
         self.assertFalse(jsonLogic({"!": True}))
 
     def test_or(self):
-        # or can be used for simple boolean tests, with 1 or more arguments.
+        """
+        'or' can be used for simple boolean tests, with 1 or more arguments.
+        """
         self.assertTrue(jsonLogic({"or": [True, False]}))
         # At a more sophisticated level, or returns the first truthy argument,
         # or the last argument.
@@ -210,7 +231,9 @@ class JSONLogicTest(unittest.TestCase):
         self.assertEqual(jsonLogic({"or": [False, None, "apple"]}), "apple")
 
     def test_and(self):
-        # and can be used for simple boolean tests, with 1 or more arguments.
+        """
+        'and' can be used for simple boolean tests, with 1 or more arguments.
+        """
         self.assertTrue(jsonLogic({"and": [True, True]}))
         self.assertFalse(jsonLogic({"and": [True, True, True, False]}))
         # At a more sophisticated level, and returns the first falsy argument,
@@ -219,6 +242,7 @@ class JSONLogicTest(unittest.TestCase):
         self.assertEqual(jsonLogic({"and": [True, "apple", 3.14]}), 3.14)
 
     def test_cmp(self):
+        """Arithmetic comparison functions."""
         # Greater than:
         self.assertTrue(jsonLogic({">": [2, 1]}))
         # Greater than or equal to:
@@ -229,8 +253,10 @@ class JSONLogicTest(unittest.TestCase):
         self.assertTrue(jsonLogic({"<=": [1, 1]}))
 
     def test_between(self):
-        # You can use a special case of < and <= to test that one value
-        # is between two others:
+        """
+        You can use a special case of < and <= to test that one value
+        is between two others.
+        """
         # Between exclusive:
         self.assertTrue(jsonLogic({"<": [1, 2, 3]}))
         self.assertFalse(jsonLogic({"<": [1, 1, 3]}))
@@ -246,11 +272,12 @@ class JSONLogicTest(unittest.TestCase):
         ))
 
     def test_max_min(self):
-        # Return the maximum or minimum from a list of values.
+        """Return the maximum or minimum from a list of values."""
         self.assertEqual(jsonLogic({"max": [1, 2, 3]}), 3)
         self.assertEqual(jsonLogic({"min": [1, 2, 3]}), 1)
 
     def test_arithmetic(self):
+        """Arithmetic operators."""
         self.assertEqual(jsonLogic({"+": [1, 1]}), 2)
         self.assertEqual(jsonLogic({"*": [2, 3]}), 6)
         self.assertEqual(jsonLogic({"-": [3, 2]}), 1)
@@ -268,36 +295,52 @@ class JSONLogicTest(unittest.TestCase):
         self.assertEqual(jsonLogic({"+": "0"}), 0)
 
     def test_modulo(self):
-        # Modulo. Finds the remainder after the first argument
-        # is divided by the second argument.
+        """
+        Modulo. Finds the remainder after the first argument
+        is divided by the second argument.
+        """
         self.assertEqual(jsonLogic({"%": [101, 2]}), 1)
 
     def test_merge(self):
-        # Takes one or more arrays, and merges them into one array.
-        # If arguments aren't arrays, they get cast to arrays.
+        """
+        Takes one or more arrays, and merges them into one array.
+        If arguments aren't arrays, they get cast to arrays.
+        """
         self.assertEqual(jsonLogic({"merge": [[1, 2], [3, 4]]}), [1, 2, 3, 4])
         self.assertEqual(jsonLogic({"merge": [1, 2, [3, 4]]}), [1, 2, 3, 4])
         # Merge can be especially useful when defining complex missing rules,
         # like which fields are required in a document. For example, the this
         # vehicle paperwork always requires the car's VIN, but only needs
         # the APR and term if you're financing.
-        missing = {"missing":
-            {"merge": [
-                "vin",
-                {"if": [{"var": "financing"}, ["apr", "term"], []]}
-            ]}
+        missing = {
+            "missing": {
+                "merge": [
+                    "vin",
+                    {"if": [{"var": "financing"}, ["apr", "term"], []]}
+                ]
+            }
         }
-        self.assertEqual(jsonLogic(missing, {"financing": True}), ["vin", "apr", "term"])
-        self.assertEqual(jsonLogic(missing, {"financing": False}), ["vin"])
+        self.assertEqual(
+            jsonLogic(missing, {"financing": True}),
+            ["vin", "apr", "term"]
+        )
+        self.assertEqual(
+            jsonLogic(missing, {"financing": False}),
+            ["vin"]
+        )
 
     def test_in(self):
-        # If the second argument is a string, tests that the first argument
-        # is a substring:
+        """
+        If the second argument is a string, tests that the first argument
+        is a substring:
+        """
         self.assertTrue(jsonLogic({"in": ["Spring", "Springfield"]}))
 
     def test_cat(self):
-        # Concatenate all the supplied arguments. Note that this is not
-        # a join or implode operation, there is no "glue" string.
+        """
+        Concatenate all the supplied arguments. Note that this is not
+        a join or implode operation, there is no "glue" string.
+        """
         self.assertEqual(jsonLogic({"cat": ["I love", " pie"]}), "I love pie")
         self.assertEqual(
             jsonLogic(
@@ -308,6 +351,8 @@ class JSONLogicTest(unittest.TestCase):
         )
 
     def test_log(self):
-        # Logs the first value to console, then passes it through unmodified.
-        # This can be especially helpful when debugging a large rule.
+        """
+        Logs the first value to console, then passes it through unmodified.
+        This can be especially helpful when debugging a large rule.
+        """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
