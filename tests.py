@@ -1,7 +1,14 @@
 """
 Tests for jsonLogic.
 """
+from __future__ import unicode_literals
+
+import json
 import unittest
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
 from json_logic import jsonLogic
 
 
@@ -356,3 +363,25 @@ class JSONLogicTest(unittest.TestCase):
         This can be especially helpful when debugging a large rule.
         """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
+
+
+class SharedTests(unittest.TestCase):
+    """This runs the tests from http://jsonlogic.com/tests.json."""
+    cnt = 0
+    @classmethod
+    def create_test(cls, logic, data, expected):
+        """Adds new test to the class."""
+        def test(self):
+            """Actual test function."""
+            self.assertEqual(jsonLogic(logic, data), expected)
+        test.__doc__ = "{},  {}  =>  {}".format(logic, data, expected)
+        setattr(cls, "test_{}".format(cls.cnt), test)
+        cls.cnt += 1
+
+
+SHARED_TESTS = json.loads(
+    urlopen("http://jsonlogic.com/tests.json").read().decode('utf-8')
+)
+for item in SHARED_TESTS:
+    if isinstance(item, list):
+        SharedTests.create_test(*item)

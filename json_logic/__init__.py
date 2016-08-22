@@ -1,5 +1,6 @@
 # This is a Python implementation of the following jsonLogic JS library:
 # https://github.com/jwadhams/json-logic-js
+from __future__ import unicode_literals
 
 import sys
 from six.moves import reduce
@@ -7,10 +8,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+try:
+    unicode
+except NameError:
+    pass
+else:
+    # Python 2 fallback.
+    str = unicode
+
 
 def if_(*args):
     """Implements the 'if' operator with support for multiple elseif-s."""
-    assert len(args) >= 2
     for i in range(0, len(args) - 1, 2):
         if args[i]:
             return args[i + 1]
@@ -27,6 +35,56 @@ def soft_equals(a, b):
     if isinstance(a, bool) or isinstance(b, bool):
         return bool(a) is bool(b)
     return a == b
+
+
+def hard_equals(a, b):
+    """Implements the '===' operator."""
+    if type(a) != type(b):
+        return False
+    return a == b
+
+
+def less(a, b, *args):
+    """Implements the '<' operator with JS-style type coertion."""
+    types = set([type(a), type(b)])
+    if float in types or int in types:
+        try:
+            a, b = float(a), float(b)
+        except TypeError:
+            # NaN
+            return False
+    return a < b and (not args or less(b, *args))
+
+
+def less_or_equal(a, b, *args):
+    """Implements the '<=' operator with JS-style type coertion."""
+    return (
+        less(a, b) or soft_equals(a, b)
+    ) and (not args or less_or_equal(b, *args))
+
+
+def to_numeric(arg):
+    """
+    Converts a string either to int or to float.
+    This is important, because e.g. {"!==": [{"+": "0"}, 0.0]}
+    """
+    if isinstance(arg, str):
+        if '.' in arg:
+            return float(arg)
+        else:
+            return int(arg)
+    return arg
+
+def plus(*args):
+    """Sum converts either to ints or to floats."""
+    return sum(to_numeric(arg) for arg in args)
+
+
+def minus(*args):
+    """Also, converts either to ints or to floats."""
+    if len(args) == 1:
+        return -to_numeric(args[0])
+    return to_numeric(args[0]) - to_numeric(args[1])
 
 
 def merge(*args):
@@ -57,6 +115,8 @@ def get_var(data, var_name, not_found=None):
 def missing(data, *args):
     """Implements the missing operator for finding missing variables."""
     not_found = object()
+    if args and isinstance(args[0], list):
+        args = args[0]
     ret = []
     for arg in args:
         if get_var(data, arg, not_found) is not_found:
@@ -83,14 +143,15 @@ def missing_some(data, min_required, args):
 
 operations = {
     "==": soft_equals,
-    "===": lambda a, b: a is b,
+    "===": hard_equals,
     "!=": lambda a, b: not soft_equals(a, b),
-    "!==": lambda a, b: a is not b,
-    ">": lambda a, b: a > b,
-    ">=": lambda a, b: a >= b,
-    "<": lambda a, b, c=None: a < b if c is None else a < b < c,
-    "<=": lambda a, b, c=None: a <= b if c is None else a <= b <= c,
+    "!==": lambda a, b: not hard_equals(a, b),
+    ">": lambda a, b: less(b, a),
+    ">=": lambda a, b: less(b, a) or soft_equals(a, b),
+    "<": less,
+    "<=": less_or_equal,
     "!": lambda a: not a,
+    "!!": bool,
     "%": lambda a, b: a % b,
     "and": lambda *args: reduce(lambda total, arg: total and arg, args, True),
     "or": lambda *args: reduce(lambda total, arg: total or arg, args, False),
@@ -98,13 +159,13 @@ operations = {
     "if": if_,
     "log": lambda a: logger.info(a) or a,
     "in": lambda a, b: a in b if "__contains__" in dir(b) else False,
-    "cat": lambda *args: "".join(args),
-    "+": lambda *args: sum(float(arg) for arg in args),
+    "cat": lambda *args: "".join(str(arg) for arg in args),
+    "+": plus,
     "*": lambda *args: reduce(lambda total, arg: total * float(arg), args, 1),
-    "-": lambda a, b=None: -a if b is None else a - b,
+    "-": minus,
     "/": lambda a, b=None: a if b is None else float(a) / float(b),
-    "min": min,
-    "max": max,
+    "min": lambda *args: min(args),
+    "max": lambda *args: max(args),
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
 }
@@ -124,14 +185,10 @@ def jsonLogic(tests, data=None):
     # Easy syntax for unary operators, like {"var": "x"} instead of strict
     # {"var": ["x"]}
     if not isinstance(values, list) and not isinstance(values, tuple):
-        values = jsonLogic(values, data)
-        # Let's do recursion first. If it's still not a list after processing,
-        # then it means it's unary syntax sugar.
-        if not isinstance(values, list) and not isinstance(values, tuple):
-            values = [values]
-    else:
-        # Recursion!
-        values = [jsonLogic(val, data) for val in values]
+        values = [values]
+
+    # Recursion!
+    values = [jsonLogic(val, data) for val in values]
 
     if operator == 'var':
         return get_var(data, *values)
