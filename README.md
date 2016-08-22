@@ -99,7 +99,7 @@ jsonLogic(True, data_will_be_ignored);
 # True
 
 #Never
-jsonLogic(false, i_wasnt_even_supposed_to_be_here);
+jsonLogic(False, i_wasnt_even_supposed_to_be_here);
 # False
 ```
 
@@ -116,15 +116,3 @@ If that doesn't suit you, and you want to manage updates yourself, the entire li
 ```bash
 curl -O https://raw.githubusercontent.com/nadirizr/json-logic-py/master/json_logic.py
 ```
-
-## Differences from the original [JavaScript version](https://github.com/jwadhams/json-logic-js)
-
-The only difference is in the straightforward '==' and '===' comparison operators, since they have different expected behavior in Python than in JavaScript.
-
-In JS:
-* '==' - Performs type coercion and compares.
-* '===' - Does not perform type coercion.
-
-In Python:
-* '==' - Does not perform type coercion, compares using Pyton's __eq__ operator.
-* '===' - Does not perform type coercion, compares using Python's 'is' operator.
