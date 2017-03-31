@@ -132,7 +132,7 @@ non-associative-array, it is returned immediately.
     # True
 
     #Never
-    jsonLogic(false, i_wasnt_even_supposed_to_be_here);
+    jsonLogic(False, i_wasnt_even_supposed_to_be_here);
     # False
 
 Installation
@@ -153,16 +153,3 @@ download it straight into your project as you see fit.
 
     curl -O https://raw.githubusercontent.com/nadirizr/json-logic-py/master/json_logic.py
 
-Differences from the original `JavaScript version <https://github.com/jwadhams/json-logic-js>`__
-------------------------------------------------------------------------------------------------
-
-The only difference is in the straightforward '==' and '===' comparison
-operators, since they have different expected behavior in Python than in
-JavaScript.
-
-In JS: \* '==' - Performs type coercion and compares. \* '===' - Does
-not perform type coercion.
-
-In Python: \* '==' - Does not perform type coercion, compares using
-Pyton's **eq** operator. \* '===' - Does not perform type coercion,
-compares using Python's 'is' operator.
