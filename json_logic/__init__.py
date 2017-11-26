@@ -2,19 +2,16 @@
 # https://github.com/jwadhams/json-logic-js
 from __future__ import unicode_literals
 
-import sys
 from six.moves import reduce
 import logging
 
 logger = logging.getLogger(__name__)
 
+# Python 2 fallback
 try:
-    unicode
+    str = unicode
 except NameError:
     pass
-else:
-    # Python 2 fallback.
-    str = unicode
 
 
 def if_(*args):
@@ -29,7 +26,7 @@ def if_(*args):
 
 
 def soft_equals(a, b):
-    """Implements the '==' operator, which does type JS-style coertion."""
+    """Implements the '==' operator, which does type JS-style coercion."""
     if isinstance(a, str) or isinstance(b, str):
         return str(a) == str(b)
     if isinstance(a, bool) or isinstance(b, bool):
@@ -45,7 +42,7 @@ def hard_equals(a, b):
 
 
 def less(a, b, *args):
-    """Implements the '<' operator with JS-style type coertion."""
+    """Implements the '<' operator with JS-style type coercion."""
     types = set([type(a), type(b)])
     if float in types or int in types:
         try:
@@ -57,7 +54,7 @@ def less(a, b, *args):
 
 
 def less_or_equal(a, b, *args):
-    """Implements the '<=' operator with JS-style type coertion."""
+    """Implements the '<=' operator with JS-style type coercion."""
     return (
         less(a, b) or soft_equals(a, b)
     ) and (not args or less_or_equal(b, *args))
@@ -74,6 +71,7 @@ def to_numeric(arg):
         else:
             return int(arg)
     return arg
+
 
 def plus(*args):
     """Sum converts either to ints or to floats."""
@@ -182,8 +180,8 @@ def jsonLogic(tests, data=None):
     operator = list(tests.keys())[0]
     values = tests[operator]
 
-    # Easy syntax for unary operators, like {"var": "x"} instead of strict
-    # {"var": ["x"]}
+    # Easy syntax for unary operators, like {"var": "x"}
+    # instead of strict {"var": ["x"]}
     if not isinstance(values, list) and not isinstance(values, tuple):
         values = [values]
 

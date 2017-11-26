@@ -25,7 +25,9 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='0.7.0-alpha',
 
-    description='Build complex rules, serialize them as JSON, and execute them in Python',
+    description=(
+        'Build complex rules, serialize them as JSON, ' +
+        'and execute them in Python'),
     long_description=long_description,
 
     # The project's main homepage.
@@ -62,6 +64,8 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 
     # What does your project relate to?

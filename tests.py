@@ -17,6 +17,7 @@ class JSONLogicTest(unittest.TestCase):
     The tests here come from 'Supported operations' page on jsonlogic.com:
     http://jsonlogic.com/operations.html
     """
+
     def test_var(self):
         """Retrieve data from the provided data object."""
         self.assertEqual(
@@ -368,12 +369,15 @@ class JSONLogicTest(unittest.TestCase):
 class SharedTests(unittest.TestCase):
     """This runs the tests from http://jsonlogic.com/tests.json."""
     cnt = 0
+
     @classmethod
     def create_test(cls, logic, data, expected):
         """Adds new test to the class."""
+
         def test(self):
             """Actual test function."""
             self.assertEqual(jsonLogic(logic, data), expected)
+
         test.__doc__ = "{},  {}  =>  {}".format(logic, data, expected)
         setattr(cls, "test_{}".format(cls.cnt), test)
         cls.cnt += 1
