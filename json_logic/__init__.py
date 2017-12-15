@@ -410,14 +410,11 @@ def jsonLogic(logic, data=None):
         return list(map(lambda subset: jsonLogic(subset, data), logic))
 
     # You've recursed to a primitive, stop!
-    if logic is None or not isinstance(logic, dict):
+    if not is_logic(logic):
         return logic
 
     # Get operator
-    operators = list(logic.keys())
-    if len(operators) != 1:
-        raise ValueError("Each rule must only contain a single operator.")
-    operator = operators[0]
+    operator = next(iter(logic.keys()))
 
     # Get values
     values = logic[operator]
@@ -455,3 +452,12 @@ def jsonLogic(logic, data=None):
 
     # Report unrecognized operation
     raise ValueError("Unrecognized operation %r" % operator)
+
+
+def is_logic(logic):
+    """
+    Determine if specified entry is a logic entry or not.
+    A logic entry is a dictionary with exactly one key.
+    An array of logic entries is not considered a logic entry itself.
+    """
+    return isinstance(logic, dict) and len(logic.keys()) == 1
