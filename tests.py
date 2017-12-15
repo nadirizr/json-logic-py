@@ -56,7 +56,7 @@ class SharedJsonLogicTests(unittest.TestCase):
 
 
 UNSUPPORTED_OPERATIONS = (
-    "?:", "substr", "filter", "map", "reduce", "all", "none", "some")
+    "substr", "filter", "map", "reduce", "all", "none", "some")
 skipped_tests_count = 0
 
 SHARED_TESTS = json.loads(
@@ -135,6 +135,17 @@ class SpecificJsonLogicTest(unittest.TestCase):
             jsonLogic(logic, {'a': 2}), {'test': 2, 'data': 'else if'})
         self.assertEqual(
             jsonLogic(logic, {'a': 3}), {'test': 3, 'data': 'else'})
+
+    def test_iif_can_return_non_logic_dictionaries(self):
+        logic = {'?:': [
+            {'==': [{'var': 'a'}, 1]},
+            {'test': 1, 'data': 'if'},
+            {'test': 2, 'data': 'else'}
+        ]}
+        self.assertEqual(
+            jsonLogic(logic, {'a': 1}), {'test': 1, 'data': 'if'})
+        self.assertEqual(
+            jsonLogic(logic, {'a': 2}), {'test': 2, 'data': 'else'})
 
     def test_log_forwards_first_argument_to_logging_module_at_info_level(self):
         # with self.assertLogs('json_logic', logging.INFO) as log:

@@ -272,6 +272,14 @@ def _if(data, *args):
         return None
 
 
+def _iif(data, a, b, c):
+    """
+    Evaluate ternary expression and return corresponding evaluated
+    argument based on the following pattern: if (A) then {B} else {C}
+    """
+    return _if(data, a, b, c)
+
+
 def _and(data, *args):
     """
     Evaluate and logically join arguments using the 'and' operator.
@@ -306,6 +314,7 @@ def _or(data, *args):
 
 logical_operations = {
     'if': _if,
+    '?:': _iif,
     'and': _and,
     'or': _or,
 }
