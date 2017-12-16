@@ -56,7 +56,7 @@ class SharedJsonLogicTests(unittest.TestCase):
 
 
 UNSUPPORTED_OPERATIONS = (
-    "substr", "filter", "map", "reduce", "all", "none", "some")
+    "filter", "map", "reduce", "all", "none", "some")
 skipped_tests_count = 0
 
 SHARED_TESTS = json.loads(

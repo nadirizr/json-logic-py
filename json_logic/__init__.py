@@ -139,6 +139,20 @@ def _concatenate(*args):
     return "".join(str(arg) for arg in args)
 
 
+def _substring(source, start, length=None):
+    """
+    Return part of 'source' string specified by 'start' and 'length' arguments.
+    Positive 'start': start at a specified position in the string.
+    Negative 'start': start at a specified position from the end of the string.
+    Zero 'start': start at the first character in the string.
+    Positive 'length': max length to be returned from the 'start'.
+    Negative 'length': max length to be omitted from the end of the string.
+    Zero 'length': return empty string.
+    Omitted 'length': return part from the 'start' till the end of the string.
+    """
+    return source[start:][:length]
+
+
 def _add(*args):
     """Sum up all arguments converting them to either integers or floats."""
     result = sum(_to_numeric(arg) for arg in args)
@@ -215,6 +229,7 @@ operations = {
     'log': _log,
     'in': _in,
     'cat': _concatenate,
+    'substr': _substring,
     '+': _add,
     '-': _subtract,
     '*': _multiply,
