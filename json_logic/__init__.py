@@ -17,6 +17,7 @@ numeric_types = integer_types + (float,)
 import logging
 import warnings
 
+__all__ = ('jsonLogic', 'is_logic', 'operations')
 
 # Helper functions and variables
 
@@ -40,6 +41,17 @@ def _to_numeric(arg):
     if isinstance(arg, float):
         return int(arg) if arg.is_integer() else arg
     return int(arg)
+
+
+def _expose_operations():
+    """Gather all operation for read-only introspection."""
+    operations = {}
+    operations.update(_logical_operations)
+    operations.update(_scoped_operations)
+    operations.update(_data_operations)
+    operations.update(_common_operations)
+    operations.update(_unsupported_operations)
+    return operations
 
 
 # Common operations
@@ -215,7 +227,7 @@ def _merge(*args):
     return resulting_array
 
 
-operations = {
+_common_operations = {
     '==': _equal_to,
     '===': _strict_equal_to,
     '!=': _not_equal_to,
@@ -248,7 +260,7 @@ def _count(*args):
     return sum(1 if a else 0 for a in args)
 
 
-unsupported_operations = {
+_unsupported_operations = {
     'count': _count
 }
 
@@ -327,7 +339,7 @@ def _or(data, *args):
     return current  # Last argument
 
 
-logical_operations = {
+_logical_operations = {
     'if': _if,
     '?:': _iif,
     'and': _and,
@@ -568,7 +580,7 @@ def _some(data, scopedData, scopedLogic):
     return len(_filter(data, scopedData, scopedLogic)) > 0
 
 
-scoped_operations = {
+_scoped_operations = {
     'filter': _filter,
     'map': _map,
     'reduce': _reduce,
@@ -655,7 +667,7 @@ def _missing_some(data, need_count, args):
     return missing_array
 
 
-data_operations = {
+_data_operations = {
     'var': _var,
     'missing': _missing,
     'missing_some': _missing_some
@@ -695,32 +707,32 @@ def jsonLogic(logic, data=None):
 
     # Try applying logical operators first as they violate the normal rule of
     # depth-first calculating consequents. Let each manage recursion as needed.
-    if operator in logical_operations:
-        return logical_operations[operator](data, *values)
+    if operator in _logical_operations:
+        return _logical_operations[operator](data, *values)
 
     # Next up, try applying scoped operations that manage their own data scopes
     # for each constituent operation
-    if operator in scoped_operations:
-        return scoped_operations[operator](data, *values)
+    if operator in _scoped_operations:
+        return _scoped_operations[operator](data, *values)
 
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
 
     # Apply data retrieval operations
-    if operator in data_operations:
-        return data_operations[operator](data, *values)
+    if operator in _data_operations:
+        return _data_operations[operator](data, *values)
 
     # Apply common operations
-    if operator in operations:
-        return operations[operator](*values)
+    if operator in _common_operations:
+        return _common_operations[operator](*values)
 
     # Apply unsupported common operations if any
-    if operator in unsupported_operations:
+    if operator in _unsupported_operations:
         warnings.warn(
             ("%r operation is not officially supported by JsonLogic and " +
              "is not guarantied to work in other JsonLogic ports") % operator,
             PendingDeprecationWarning)
-        return unsupported_operations[operator](*values)
+        return _unsupported_operations[operator](*values)
 
     # Report unrecognized operation
     raise ValueError("Unrecognized operation %r" % operator)
@@ -733,3 +745,7 @@ def is_logic(logic):
     An array of logic entries is not considered a logic entry itself.
     """
     return isinstance(logic, dict) and len(logic.keys()) == 1
+
+
+# Expose operations of read-only introspection
+operations = _expose_operations()

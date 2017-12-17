@@ -9,7 +9,13 @@ try:
     from urllib.request import urlopen
 except ImportError:
     from urllib2 import urlopen
-from json_logic import jsonLogic, is_logic
+from json_logic import jsonLogic, is_logic, operations
+from json_logic import \
+    _logical_operations, \
+    _scoped_operations, \
+    _data_operations, \
+    _common_operations, \
+    _unsupported_operations
 
 
 # Python 2 fallback
@@ -201,6 +207,43 @@ class SpecificJsonLogicTest(unittest.TestCase):
         self.assertFalse(is_logic({'two': 'keys', 'per': 'dictionary'}))
         # Array of logic entries is not considered a logic entry itself
         self.assertFalse(is_logic([{'>': [2, 1]}, {'+': [1, 2]}]))
+
+    def test_operations_value_exposes_all_operations(self):
+        exposable_operations = (
+            _logical_operations,
+            _scoped_operations,
+            _data_operations,
+            _common_operations,
+            _unsupported_operations)
+        for exposable_operation_dict in exposable_operations:
+            for operation_name, function in exposable_operation_dict.items():
+                self.assertIn(
+                    operation_name, operations,
+                    "Operation %r is not exposed" % operation_name)
+
+    def test_operations_value_exposes_correct_functions(self):
+        exposable_operations = (
+            _logical_operations,
+            _scoped_operations,
+            _data_operations,
+            _common_operations,
+            _unsupported_operations)
+        for exposable_operation_dict in exposable_operations:
+            for operation_name, function in exposable_operation_dict.items():
+                self.assertIs(
+                    function, operations[operation_name],
+                    "Invalid function exposed for %r" % operation_name)
+
+    def test_operations_value_modifications_do_not_impact_fuctionality(self):
+        global operations
+        old_operations = operations
+        try:
+            operations['+'] = lambda *args: "Ha-ha!"
+            result = jsonLogic({'+': [1, 2]})
+            self.assertNotEqual(result, "Ha-ha!")
+            self.assertEqual(result, 3)
+        finally:
+            operations = old_operations  # Restore exposed operations list
 
 
 if __name__ == '__main__':
