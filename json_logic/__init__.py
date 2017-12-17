@@ -45,7 +45,7 @@ def _to_numeric(arg):
 # Common operations
 
 def _equal_to(a, b):
-    """Test for non-strict equality ('==') with JS-style type coercion."""
+    """Check for non-strict equality ('==') with JS-style type coercion."""
     if isinstance(a, str) or isinstance(b, str):
         return str(a) == str(b)
     if isinstance(a, bool) or isinstance(b, bool):
@@ -335,6 +335,249 @@ logical_operations = {
 }
 
 
+# Scoped operations
+
+def _filter(data, scopedData, scopedLogic):
+    """
+    Filter 'scopedData' using the specified 'scopedLogic' argument.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    element as its data object.
+
+    'scopedLogic' must evaluate to a truthy value in order for the current
+    'scopedData' element to be included into the resulting array, or to
+    a falsy value to exclude it.
+
+    Example:
+    {"filter": [
+        [1, 2, 3, 4, 5],
+        {"%": [{"var": ""}, 2]}
+    ]}
+    calculates to: [1, 3, 5]
+
+    If 'scopedData' argument does not evaluate to an array, an empty array
+    is returned.
+    """
+    scopedData = jsonLogic(scopedData, data)
+    if not isinstance(scopedData, (list, tuple)):
+        return []
+    return list(filter(
+        lambda datum: _truthy(jsonLogic(scopedLogic, datum)),
+        scopedData))
+
+
+def _map(data, scopedData, scopedLogic):
+    """
+    Apply 'scopedLogic' argument to each 'scopedData' element.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    element as its data object.
+
+    Result returned by 'scopedLogic' is included into the resulting array.
+
+    Example:
+    {"map": [
+        [1, 2, 3, 4, 5],
+        {"*": [{"var": ""}, 2]}
+    ]}
+    calculates to: [2, 4, 6, 8, 10]
+
+    If 'scopedData' argument does not evaluate to an array, an empty array
+    is returned.
+    """
+    scopedData = jsonLogic(scopedData, data)
+    if not isinstance(scopedData, (list, tuple)):
+        return []
+    return list(map(
+        lambda datum: jsonLogic(scopedLogic, datum),
+        scopedData))
+
+
+def _reduce(data, scopedData, scopedLogic, initial=None):
+    """
+    Apply 'scopedLogic' cumulatively to the elements in 'scopedData' argument,
+    from left to right, so as to reduce the sequence it to a single value.
+    If 'initial' is provided, it is placed before all 'scopedData' elements in
+    the calculation, and serves as a default when 'scopedData' array is empty.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that is applied to the following
+    data object: {'accumulator': accumulator, 'current': current}; where
+    'accumulator' is the result of all previous iterations (of 'initial' if
+    none had occurred so far), and 'current' is the value of the current
+    'scopedData' element being analyzed.
+
+    The return value of the final application is returned as the result of
+    the 'reduce' operation.
+
+    Example:
+    {"reduce": [
+        [1, 2, 3, 4, 5],
+        {"+": [{"var": "accumulator"}, {"var": "current"}]},
+        0
+    ]}
+    calculates as: ((((1+2)+3)+4)+5) = 15
+
+    If 'scopedData' argument does not evaluate to an array, the 'initial'
+    value is returned.
+    """
+    scopedData = jsonLogic(scopedData, data)
+    if not isinstance(scopedData, (list, tuple)):
+        return initial
+    return reduce(
+        lambda accumulator, current: jsonLogic(
+            scopedLogic, {'accumulator': accumulator, 'current': current}),
+        scopedData, initial)
+
+
+def _all(data, scopedData, scopedLogic):
+    """
+    Check if 'scopedLogic' evaluates to a truthy value for all
+    'scopedData' elements.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    element as its data object.
+
+    Return True if 'scopedLogic' evaluates to a truthy value for all
+    'scopedData' elements. Return False otherwise.
+
+    Example:
+    {"all": [
+        [1, 2, 3, 4, 5],
+        {">=":[{"var":""}, 1]}
+    ]}
+    evaluates to: True
+
+    If 'scopedData' argument does not evaluate to an array or if the array
+    is empty, False is returned.
+
+    N.B.: According to current core JsonLogic evaluation of 'scopedData'
+    elements stops upon encountering first falsy value.
+    """
+    scopedData = jsonLogic(scopedData, data)
+    if not isinstance(scopedData, (list, tuple)):
+        return False
+    if len(scopedData) == 0:
+        return False  # "all" of an empty set is false
+    for datum in scopedData:
+        if _falsy(jsonLogic(scopedLogic, datum)):
+            return False  # First falsy, short circuit
+    return True  # All were truthy
+
+
+def _none(data, scopedData, scopedLogic):
+    """
+    Check if 'scopedLogic' evaluates to a truthy value for none of
+    'scopedData' elements.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    element as its data object.
+
+    Return True if 'scopedLogic' evaluates to a falsy value for all
+    'scopedData' elements. Return False otherwise.
+
+    Example:
+    {"none": [
+        [1, 2, 3, 4, 5],
+        {"==":[{"var":""}, 10]}
+    ]}
+    evaluates to: True
+
+    If 'scopedData' argument does not evaluate to an array or if the array
+    is empty, True is returned.
+
+    N.B.: According to current core JsonLogic all 'scopedData' elements are
+    evaluated before returning the result. It does not stop at first truthy
+    value.
+    """
+    return len(_filter(data, scopedData, scopedLogic)) == 0
+
+
+def _some(data, scopedData, scopedLogic):
+    """
+    Check if 'scopedLogic' evaluates to a truthy value for at least
+    one 'scopedData' element.
+
+    'scopedData' argument can be:
+      - a manually specified data array;
+      - a JsonLogic entry returning a data array;
+      - a JsonLogic 'var' operation returning part of the data object
+        containing a data array; like: {"var": "a"};
+      - a JsonLogic 'var' operation returning the whole data object
+        if it is an array itself; like: {"var": ""}.
+
+    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    element as its data object.
+
+    Return True if 'scopedLogic' evaluates to a truthy value for at least
+    one 'scopedData' element. Return False otherwise.
+
+    Example:
+    {"some": [
+        [1, 2, 3, 4, 5],
+        {"==":[{"var":""}, 3]}
+    ]}
+    evaluates to: True
+
+    If 'scopedData' argument does not evaluate to an array or if the array
+    is empty, False is returned.
+
+    N.B.: According to current core JsonLogic all 'scopedData' elements are
+    evaluated before returning the result. It does not stop at first truthy
+    value.
+    """
+    return len(_filter(data, scopedData, scopedLogic)) > 0
+
+
+scoped_operations = {
+    'filter': _filter,
+    'map': _map,
+    'reduce': _reduce,
+    'all': _all,
+    'none': _none,
+    'some': _some
+}
+
+
 # Data operations
 
 def _var(data, var_name=None, default=None):
@@ -454,6 +697,11 @@ def jsonLogic(logic, data=None):
     # depth-first calculating consequents. Let each manage recursion as needed.
     if operator in logical_operations:
         return logical_operations[operator](data, *values)
+
+    # Next up, try applying scoped operations that manage their own data scopes
+    # for each constituent operation
+    if operator in scoped_operations:
+        return scoped_operations[operator](data, *values)
 
     # Recursion!
     values = [jsonLogic(val, data) for val in values]

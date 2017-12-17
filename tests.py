@@ -55,20 +55,12 @@ class SharedJsonLogicTests(unittest.TestCase):
         cls.cnt += 1
 
 
-UNSUPPORTED_OPERATIONS = (
-    "filter", "map", "reduce", "all", "none", "some")
-skipped_tests_count = 0
-
 SHARED_TESTS = json.loads(
     urlopen("http://jsonlogic.com/tests.json").read().decode('utf-8'))
 
 for item in SHARED_TESTS:
     if isinstance(item, list):
-        if any(("'%s'" % op in str(item[0])) for op in UNSUPPORTED_OPERATIONS):
-            skipped_tests_count += 1
-        else:
-            SharedJsonLogicTests.create_test(*item)
-print("Skipped %d shared test(s)" % skipped_tests_count)
+        SharedJsonLogicTests.create_test(*item)
 
 
 class SpecificJsonLogicTest(unittest.TestCase):
