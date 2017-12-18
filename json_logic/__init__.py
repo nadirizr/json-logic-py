@@ -17,7 +17,13 @@ numeric_types = integer_types + (float,)
 import logging
 import warnings
 
-__all__ = ('jsonLogic', 'is_logic', 'operations')
+__all__ = (
+    'jsonLogic',
+    'is_logic',
+    'operations',
+    'add_operation',
+    'rm_operation'
+)
 
 # Helper functions and variables
 
@@ -45,12 +51,14 @@ def _to_numeric(arg):
 
 def _expose_operations():
     """Gather all operation for read-only introspection."""
-    operations = {}
+    global operations
+    operations.clear()
     operations.update(_logical_operations)
     operations.update(_scoped_operations)
     operations.update(_data_operations)
     operations.update(_common_operations)
     operations.update(_unsupported_operations)
+    operations.update(_custom_operations)
     return operations
 
 
@@ -227,6 +235,33 @@ def _merge(*args):
     return resulting_array
 
 
+def _method(obj, method, args=[]):
+    """
+    Call the specified 'method' on an 'obj' object with an array of 'args'
+    arguments.
+
+    Example:
+    {"method": [{"var": "today"}, "isoformat"]}
+    gets datetime.date object from 'today' variable and calls its 'isoformat'
+    method returning an ISO-formated date string.
+    {"method": ["string value", "split", [" "]]}
+    calls split(' ') method on a "string value" string returning an array
+    of ["string", "format"].
+
+    Can also be used to get property values instead of calling a method.
+    In this case arguments are ignored.
+
+    Example:
+    {"method": [{"var": "today"}, "month"]}
+    gets datetime.date object from 'today' variable and returns the number of
+    the month via 'month' property.
+    """
+    method = getattr(obj, str(method))
+    if callable(method):
+        return method(*args)
+    return method
+
+
 _common_operations = {
     '==': _equal_to,
     '===': _strict_equal_to,
@@ -250,6 +285,7 @@ _common_operations = {
     'min': _minimal,
     'max': _maximal,
     'merge': _merge,
+    'method': _method
 }
 
 
@@ -263,6 +299,11 @@ def _count(*args):
 _unsupported_operations = {
     'count': _count
 }
+
+
+# Custom operation (may be added manually)
+
+_custom_operations = {}
 
 
 # Logical operations
@@ -693,7 +734,7 @@ def jsonLogic(logic, data=None):
         return logic
 
     # Get operator
-    operator = next(iter(logic.keys()))
+    operator = str(next(iter(logic.keys())))
 
     # Get values
     values = logic[operator]
@@ -722,6 +763,10 @@ def jsonLogic(logic, data=None):
     if operator in _data_operations:
         return _data_operations[operator](data, *values)
 
+    # Apply simple custom operations (if any)
+    if operator in _custom_operations:
+        return _custom_operations[operator](*values)
+
     # Apply common operations
     if operator in _common_operations:
         return _common_operations[operator](*values)
@@ -733,6 +778,25 @@ def jsonLogic(logic, data=None):
              "is not guarantied to work in other JsonLogic ports") % operator,
             PendingDeprecationWarning)
         return _unsupported_operations[operator](*values)
+
+    # Apply dot-notated custom operations (if any)
+    suboperators = operator.split('.')
+    if len(suboperators) > 1 and suboperators[0]:  # Dots in the middle
+        current_operation = _custom_operations
+        for idx, suboperator in enumerate(suboperators):
+            try:
+                if isinstance(current_operation, (dict, list, tuple)):
+                    try:
+                        current_operation = current_operation[suboperator]
+                    except (KeyError, IndexError):
+                        current_operation = current_operation[int(suboperator)]
+                else:
+                    current_operation = getattr(current_operation, suboperator)
+            except (KeyError, IndexError, AttributeError, ValueError):
+                raise ValueError(
+                    "Unrecognized operation %r (failed at %r)"
+                    % (operator, '.'.join(suboperators[:idx + 1])))
+        return current_operation(*values)
 
     # Report unrecognized operation
     raise ValueError("Unrecognized operation %r" % operator)
@@ -747,5 +811,46 @@ def is_logic(logic):
     return isinstance(logic, dict) and len(logic.keys()) == 1
 
 
-# Expose operations of read-only introspection
-operations = _expose_operations()
+def add_operation(name, code):
+    """
+    Add a custom common JsonLogic operation.
+
+    Operation code must only take positional arguments that are absolutely
+    necessary for its execution. JsonLogic will run it using the array of
+    provided values, like: code(*values)
+
+    Example:
+    {"my_operation": [1, 2, 3]} will be called as code(1, 2, 3)
+
+    Can also be used to add custom classed or even packages to extend JsonLogic
+    functionality.
+
+    Example:
+    add_operation("datetime", datetime)
+
+    Methods of such classes or packages can later be called using dot-notation.
+
+    Example:
+    {"datetime.datetime.now": []}
+    can be used to retrieve current datetime value.
+    {"datetime.date": [2018, 1, 1]}
+    can be used to retrieve January 1, 2018 date.
+
+    N.B.: Custom operations may be used to override common JsonLogic functions,
+    but not logical, scoped or data retrieval ones.
+    """
+    global _custom_operations
+    _custom_operations[str(name)] = code
+    _expose_operations()
+
+
+def rm_operation(name):
+    """Remove previously added custom common JsonLogic operation."""
+    global _custom_operations
+    del(_custom_operations[str(name)])
+    _expose_operations()
+
+
+# Initially expose operations of read-only introspection
+operations = {}
+_expose_operations()

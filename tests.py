@@ -4,12 +4,18 @@ from __future__ import unicode_literals
 
 import json
 import logging
+import datetime
 import unittest
 try:
     from urllib.request import urlopen
 except ImportError:
     from urllib2 import urlopen
-from json_logic import jsonLogic, is_logic, operations
+from json_logic import \
+    jsonLogic, \
+    is_logic, \
+    operations, \
+    add_operation, \
+    rm_operation
 from json_logic import \
     _logical_operations, \
     _scoped_operations, \
@@ -92,8 +98,9 @@ class SpecificJsonLogicTest(unittest.TestCase):
         super(SpecificJsonLogicTest, cls).tearDownClass()
 
     def test_bad_operator(self):
-        with self.assertRaisesRegex(ValueError, "Unrecognized operation"):
-            self.assertFalse(jsonLogic({'fubar': []}))
+        self.assertRaisesRegex(
+            ValueError, "Unrecognized operation",
+            jsonLogic, {'fubar': []})
 
     def test_array_of_logic_entries(self):
         logic = [
@@ -146,7 +153,6 @@ class SpecificJsonLogicTest(unittest.TestCase):
             jsonLogic(logic, {'a': 2}), {'test': 2, 'data': 'else'})
 
     def test_log_forwards_first_argument_to_logging_module_at_info_level(self):
-        # with self.assertLogs('json_logic', logging.INFO) as log:
         jsonLogic({'log': 'apple'})
         jsonLogic({'log': 1})
         jsonLogic({'log': True})
@@ -194,6 +200,168 @@ class SpecificJsonLogicTest(unittest.TestCase):
         self.assertIs(jsonLogic({'%': [2, 2]}), 0)
         self.assertIs(jsonLogic({'%': [4, 3]}), 1)
         self.assertEqual(jsonLogic({'%': [2, 1.5]}), 0.5)
+
+    def test_method_operation_with_method_without_arguments(self):
+        todays_date = datetime.date.today()
+        logic = {'method': [{'var': 'today'}, 'isoformat']}
+        data = {'today': todays_date}
+        returned_value = jsonLogic(logic, data)
+        self.assertIsInstance(returned_value, str)
+        self.assertEqual(returned_value, todays_date.isoformat())
+
+    def test_method_operation_with_method_with_arguments(self):
+        logic = {'method': ['string value', 'split', [' ']]}
+        returned_value = jsonLogic(logic)
+        self.assertIsInstance(returned_value, list)
+        self.assertSequenceEqual(returned_value, ['string', 'value'])
+
+    def test_method_operation_with_property(self):
+        todays_date = datetime.date.today()
+        logic = {'method': [{'var': 'today'}, 'month']}
+        data = {'today': todays_date}
+        returned_value = jsonLogic(logic, data)
+        self.assertIsInstance(returned_value, int)
+        self.assertEqual(returned_value, todays_date.month)
+
+    def test_if_operator_does_not_evaluate_depth_first(self):
+        # 'if' operation should stop at first truthy condition.
+        # Consequents of falsy conditions should not be evaluated.
+        conditions = []
+        consequents = []
+
+        def push_if(arg):
+            conditions.append(arg)
+            return arg
+
+        def push_then(arg):
+            consequents.append(arg)
+            return arg
+
+        def push_else(arg):
+            consequents.append(arg)
+            return arg
+
+        add_operation('push_if', push_if)
+        add_operation('push_then', push_then)
+        add_operation('push_else', push_else)
+
+        jsonLogic({'if': [
+            {'push_if': [True]},
+            {'push_then': ["first"]},
+            {'push_if': [False]},
+            {'push_then': ["second"]},
+            {'push_else': ["third"]}
+        ]})
+        self.assertSequenceEqual(conditions, [True])
+        self.assertSequenceEqual(consequents, ["first"])
+
+        del(conditions[:])
+        del(consequents[:])
+
+        jsonLogic({'if': [
+            {'push_if': [False]},
+            {'push_then': ["first"]},
+            {'push_if': [True]},
+            {'push_then': ["second"]},
+            {'push_else': ["third"]}
+        ]})
+        self.assertSequenceEqual(conditions, [False, True])
+        self.assertSequenceEqual(consequents, ["second"])
+
+        del(conditions[:])
+        del(consequents[:])
+
+        jsonLogic({'if': [
+            {'push_if': [False]},
+            {'push_then': ["first"]},
+            {'push_if': [False]},
+            {'push_then': ["second"]},
+            {'push_else': ["third"]}
+        ]})
+        self.assertSequenceEqual(conditions, [False, False])
+        self.assertSequenceEqual(consequents, ["third"])
+
+    def test_ternary_operator_does_not_evaluate_depth_first(self):
+        # False consequent of '?:' operation condition should not run
+        consequents = []
+
+        def push_then(arg):
+            consequents.append(arg)
+            return arg
+
+        def push_else(arg):
+            consequents.append(arg)
+            return arg
+
+        add_operation('push_then', push_then)
+        add_operation('push_else', push_else)
+
+        jsonLogic({'?:': [
+            True,
+            {'push_then': ["first"]},
+            {'push_else': ["second"]}
+        ]})
+        self.assertSequenceEqual(consequents, ["first"])
+
+        del(consequents[:])
+
+        jsonLogic({'?:': [
+            False,
+            {'push_then': ["first"]},
+            {'push_else': ["second"]}
+        ]})
+        self.assertSequenceEqual(consequents, ["second"])
+
+    def test_and_operator_does_not_evaluate_depth_first(self):
+        # 'and' operator should stop at first falsy value
+        evaluated_elements = []
+
+        def push(arg):
+            evaluated_elements.append(arg)
+            return arg
+
+        add_operation('push', push)
+
+        jsonLogic({'and': [{'push': [False]}, {'push': [False]}]})
+        self.assertSequenceEqual(evaluated_elements, [False])
+
+        del(evaluated_elements[:])
+
+        jsonLogic({'and': [{'push': [False]}, {'push': [True]}]})
+        self.assertSequenceEqual(evaluated_elements, [False])
+
+        del(evaluated_elements[:])
+
+        jsonLogic({'and': [{'push': [True]}, {'push': [True]}]})
+        self.assertSequenceEqual(evaluated_elements, [True, True])
+
+    def test_or_operator_does_not_evaluate_depth_first(self):
+        # 'or' operator should stop at first truthy value
+        evaluated_elements = []
+
+        def push(arg):
+            evaluated_elements.append(arg)
+            return arg
+
+        add_operation('push', push)
+
+        jsonLogic({'or': [{'push': [False]}, {'push': [False]}]})
+        self.assertSequenceEqual(evaluated_elements, [False, False])
+
+        del(evaluated_elements[:])
+
+        jsonLogic({'or': [{'push': [False]}, {'push': [True]}]})
+        self.assertSequenceEqual(evaluated_elements, [False, True])
+
+        del(evaluated_elements[:])
+
+        jsonLogic({'or': [{'push': [True]}, {'push': [False]}]})
+        self.assertSequenceEqual(evaluated_elements, [True])
+
+        del(evaluated_elements[:])
+
+        jsonLogic({'or': [{'push': [True]}, {'push': [True]}]})
+        self.assertSequenceEqual(evaluated_elements, [True])
 
     def test_is_logic_function(self):
         # Returns True for logic entries
@@ -244,6 +412,142 @@ class SpecificJsonLogicTest(unittest.TestCase):
             self.assertEqual(result, 3)
         finally:
             operations = old_operations  # Restore exposed operations list
+
+    def test_add_operation_with_simple_method(self):
+        def add_to_five(*args):
+            return sum((5,) + args)
+        self.assertRaisesRegex(
+            ValueError, "Unrecognized operation",
+            jsonLogic, {'add_to_five': [3]})
+        add_operation('add_to_five', add_to_five)
+        try:
+            self.assertEqual(jsonLogic({'add_to_five': 1}), 6)
+            self.assertEqual(jsonLogic({'add_to_five': [3]}), 8)
+            self.assertEqual(jsonLogic({'add_to_five': [3, 2]}), 10)
+        finally:
+            rm_operation('add_to_five')
+
+    def test_add_operation_with_packages(self):
+        self.assertRaisesRegex(
+            ValueError, "Unrecognized operation.*datetime",
+            jsonLogic, {'datetime.datetime.now': []})
+        add_operation('datetime', datetime)
+        try:
+            # .now()
+            start = datetime.datetime.now()
+            returned_value = jsonLogic({'datetime.datetime.now': []})
+            self.assertIsInstance(returned_value, datetime.datetime)
+            self.assertTrue(start <= returned_value <= datetime.datetime.now())
+            # .date()
+            returned_value = jsonLogic({'datetime.date': [2018, 1, 1]})
+            self.assertIsInstance(returned_value, datetime.date)
+            self.assertEqual(returned_value, datetime.date(2018, 1, 1))
+        finally:
+            rm_operation('datetime')
+
+    def test_add_operation_with_packages_fails_midway(self):
+        add_operation('datetime', datetime)
+        try:
+            self.assertRaisesRegex(
+                ValueError, "datetime\.wrong_property(?!\.now)",
+                jsonLogic, {'datetime.wrong_property.now': []})
+            self.assertRaisesRegex(
+                ValueError, "datetime\.datetime.wrong_method",
+                jsonLogic, {'datetime.datetime.wrong_method': []})
+        finally:
+            rm_operation('datetime')
+
+    def test_add_operation_may_override_common_operations(self):
+        add_operation('+', lambda *args: "Ha-ha!")
+        try:
+            self.assertEqual(jsonLogic({'+': [1, 2]}), "Ha-ha!")
+        finally:
+            rm_operation('+')
+
+    def test_depth_first_rule_still_applies_to_custom_operators(self):
+        add_operation('sum_up', lambda *args: sum(args))
+        try:
+            self.assertEqual(
+                jsonLogic({'sum_up': [{'-': [5, 3]}, {'*': [2, 3]}]}),
+                8)
+        finally:
+            rm_operation('sum_up')
+
+    def test_rm_operation_removes_custom_operation(self):
+        add_operation('custom', lambda: "Ha-ha!")
+        try:
+            self.assertEqual(jsonLogic({'custom': []}), "Ha-ha!")
+        finally:
+            rm_operation('custom')
+        self.assertRaisesRegex(
+            ValueError, "Unrecognized operation",
+            jsonLogic, {'custom': []})
+
+    def test_rm_operation_restores_overridden_operation(self):
+        self.assertEqual(jsonLogic({'+': [2, 3]}), 5)
+        add_operation('+', lambda *args: "Ha-ha!")
+        try:
+            self.assertEqual(jsonLogic({'+': [2, 3]}), "Ha-ha!")
+        finally:
+            rm_operation('+')
+            self.assertEqual(jsonLogic({'+': [2, 3]}), 5)
+            self.assertNotEqual(jsonLogic({'+': [2, 3]}), "Ha-ha!")
+
+    def test_add_operation_does_not_override_other_operation_types(self):
+        test_data = (
+            ('if', [True, "yes", "no"], {}, "yes"),
+            ('map', [[1, 2, 3], {'*': [{'var': ''}, 2]}], {}, [2, 4, 6]),
+            ('var', 'a', {'a': "Ta-da!"}, "Ta-da!"))
+        for operation, arguments, data, expected_result in test_data:
+            add_operation(operation, lambda *args: "Ha-ha!")
+            try:
+                result = jsonLogic({operation: arguments}, data)
+                self.assertEqual(result, expected_result, operation)
+                self.assertNotEqual(result, "Ha-ha!", operation)
+            finally:
+                rm_operation(operation)
+
+    def test_add_operation_updates_exposed_operations_list(self):
+        haha = lambda *args: "Ha-ha!"
+        self.assertNotIn('custom', operations)
+        add_operation('custom', haha)
+        try:
+            self.assertIn('custom', operations)
+            self.assertIs(operations['custom'], haha)
+        finally:
+            rm_operation('custom')
+
+    def test_add_operation_overrides_existing_exposed_operations(self):
+        haha = lambda *args: "Ha-ha!"
+        self.assertIn('+', operations)
+        self.assertIsNot(operations['+'], haha)
+        add_operation('+', haha)
+        try:
+            self.assertIn('+', operations)
+            self.assertIs(operations['+'], haha)
+        finally:
+            rm_operation('+')
+
+    def test_rm_operation_updates_exposed_operations_list(self):
+        haha = lambda *args: "Ha-ha!"
+        add_operation('custom', haha)
+        try:
+            self.assertIn('custom', operations)
+            self.assertIs(operations['custom'], haha)
+        finally:
+            rm_operation('custom')
+        self.assertNotIn('custom', operations)
+
+    def test_rm_operation_restores_overridden_operation_in_exposed_list(self):
+        haha = lambda *args: "Ha-ha!"
+        add_operation('+', haha)
+        try:
+            self.assertIn('+', operations)
+            self.assertIs(operations['+'], haha)
+        finally:
+            rm_operation('+')
+        self.assertIn('+', operations)
+        self.assertIsNot(operations['+'], haha)
 
 
 if __name__ == '__main__':
