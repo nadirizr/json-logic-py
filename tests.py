@@ -13,6 +13,7 @@ except ImportError:
 from json_logic import \
     jsonLogic, \
     is_logic, \
+    uses_data, \
     operations, \
     add_operation, \
     rm_operation
@@ -375,6 +376,29 @@ class SpecificJsonLogicTest(unittest.TestCase):
         self.assertFalse(is_logic({'two': 'keys', 'per': 'dictionary'}))
         # Array of logic entries is not considered a logic entry itself
         self.assertFalse(is_logic([{'>': [2, 1]}, {'+': [1, 2]}]))
+
+    def test_uses_data_function_returns_variable_names(self):
+        logic = {'+': [{'var': 'a'}, {'var': ['b', 2]}, 3, {'var': ['c']}]}
+        variables = uses_data(logic)
+        self.assertSequenceEqual(variables, ['a', 'b', 'c'])
+
+    def test_uses_data_function_returns_nested_variable_names(self):
+        logic = {'if': [
+            {'>': [{'var': 'a'}, {'var': ['b']}]},
+            {'var': ['c', 3]},
+            {'+': [{'var': 'd'}, 10]}
+        ]}
+        variables = uses_data(logic)
+        self.assertSequenceEqual(variables, ['a', 'b', 'c', 'd'])
+
+    def test_uses_data_function_returns_unique_variable_names(self):
+        logic = {'if': [
+            {'>': [{'var': 'a'}, {'var': 'b'}]},
+            {'var': 'a'},
+            {'*': [{'var': 'b'}, 2]}
+        ]}
+        variables = uses_data(logic)
+        self.assertSequenceEqual(variables, ['a', 'b'])
 
     def test_operations_value_exposes_all_operations(self):
         exposable_operations = (

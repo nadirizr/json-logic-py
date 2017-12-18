@@ -49,6 +49,21 @@ def _to_numeric(arg):
     return int(arg)
 
 
+def _get_operator(logic):
+    """Return operator name from JsonLogic entry."""
+    return str(next(iter(logic.keys())))
+
+
+def _get_values(logic, operator):
+    """Return array of values from JsonLogic entry by operator name."""
+    values = logic[operator]
+    # Easy syntax for unary operators like {"var": "x"}
+    # instead of strict {"var": ["x"]}
+    if not isinstance(values, (list, tuple)):
+        values = [values]
+    return values
+
+
 def _expose_operations():
     """Gather all operation for read-only introspection."""
     global operations
@@ -734,14 +749,10 @@ def jsonLogic(logic, data=None):
         return logic
 
     # Get operator
-    operator = str(next(iter(logic.keys())))
+    operator = _get_operator(logic)
 
     # Get values
-    values = logic[operator]
-    # Easy syntax for unary operators like {"var": "x"}
-    # instead of strict {"var": ["x"]}
-    if not isinstance(values, (list, tuple)):
-        values = [values]
+    values = _get_values(logic, operator)
 
     # Get data
     data = data or {}
@@ -809,6 +820,25 @@ def is_logic(logic):
     An array of logic entries is not considered a logic entry itself.
     """
     return isinstance(logic, dict) and len(logic.keys()) == 1
+
+
+def uses_data(logic):
+    """
+    Return a unique array of variables used in JsonLogic entry.
+    N.B.: It does not cover the case where the argument to 'var'
+    is itself a JsonLogic entry.
+    """
+    variables = set()
+    if is_logic(logic):
+        operator = _get_operator(logic)
+        values = _get_values(logic, operator)
+        if operator == "var":
+            variables.add(values[0])
+        else:
+            for subset in values:
+                for value in uses_data(subset):
+                    variables.add(value)
+    return list(sorted(variables))
 
 
 def add_operation(name, code):
