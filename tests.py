@@ -14,6 +14,7 @@ from json_logic import \
     jsonLogic, \
     is_logic, \
     uses_data, \
+    rule_like, \
     operations, \
     add_operation, \
     rm_operation
@@ -50,38 +51,43 @@ class MockLoggingHandler(logging.Handler):
             self.messages[logging_level] = []
 
 
-class SharedJsonLogicTests(unittest.TestCase):
-    """Shared tests from from http://jsonlogic.com/tests.json."""
+def shared_test(function, url):
+    """Class UnitTest class decorator for shared tests."""
 
-    cnt = 0
-
-    @classmethod
-    def create_test(cls, logic, data, expected):
-        """Add new test to the class."""
-
+    def create_test(cls, count, arg1, arg2, expected):
         def test(self):
-            """Actual test function."""
-            self.assertEqual(jsonLogic(logic, data), expected)
+            self.assertEqual(function(arg1, arg2), expected)
+        test.__doc__ = "{},  {}  =>  {}".format(arg1, arg2, expected)
+        setattr(cls, "test_{}".format(count), test)
 
-        test.__doc__ = "{},  {}  =>  {}".format(logic, data, expected)
-        setattr(cls, "test_{}".format(cls.cnt), test)
-        cls.cnt += 1
+    def class_decorator(cls):
+        shared_tests = json.loads(urlopen(url).read().decode('utf-8'))
+        count = 0
+        for entry in shared_tests:
+            if isinstance(entry, list):
+                count += 1
+                create_test(cls, count, *entry)
+        return cls
+
+    return class_decorator
 
 
-SHARED_TESTS = json.loads(
-    urlopen("http://jsonlogic.com/tests.json").read().decode('utf-8'))
-
-for item in SHARED_TESTS:
-    if isinstance(item, list):
-        SharedJsonLogicTests.create_test(*item)
+@shared_test(jsonLogic, 'http://jsonlogic.com/tests.json')
+class SharedJsonLogicTests(unittest.TestCase):
+    """Shared JsonLogic tests."""
 
 
-class SpecificJsonLogicTest(unittest.TestCase):
-    """Specific JsonLogic tests that are not included into the shared list."""
+@shared_test(rule_like, 'http://jsonlogic.com/rule_like.json')
+class SharedRuleLikeTests(unittest.TestCase):
+    """Shared 'rule_like' tests."""
+
+
+class AdditionalJsonLogicTests(unittest.TestCase):
+    """Additional JsonLogic tests not included into the shared list."""
 
     @classmethod
     def setUpClass(cls):
-        super(SpecificJsonLogicTest, cls).setUpClass()
+        super(AdditionalJsonLogicTests, cls).setUpClass()
         mock_logger = logging.getLogger('json_logic')
         mock_logger.setLevel(logging.DEBUG)
         cls.mock_logger_handler = MockLoggingHandler()
@@ -89,14 +95,14 @@ class SpecificJsonLogicTest(unittest.TestCase):
         cls.log_messages = cls.mock_logger_handler.messages
 
     def setUp(self):
-        super(SpecificJsonLogicTest, self).setUp()
+        super(AdditionalJsonLogicTests, self).setUp()
         self.mock_logger_handler.reset()
 
     @classmethod
     def tearDownClass(cls):
         mock_logger = logging.getLogger('json_logic')
         mock_logger.removeHandler(cls.mock_logger_handler)
-        super(SpecificJsonLogicTest, cls).tearDownClass()
+        super(AdditionalJsonLogicTests, cls).tearDownClass()
 
     def test_bad_operator(self):
         self.assertRaisesRegex(

@@ -54,12 +54,12 @@ def _get_operator(logic):
     return str(next(iter(logic.keys())))
 
 
-def _get_values(logic, operator):
+def _get_values(logic, operator, normalize=True):
     """Return array of values from JsonLogic entry by operator name."""
     values = logic[operator]
     # Easy syntax for unary operators like {"var": "x"}
     # instead of strict {"var": ["x"]}
-    if not isinstance(values, (list, tuple)):
+    if normalize and not isinstance(values, (list, tuple)):
         values = [values]
     return values
 
@@ -839,6 +839,71 @@ def uses_data(logic):
                 for value in uses_data(subset):
                     variables.add(value)
     return list(sorted(variables))
+
+
+def rule_like(rule, pattern):
+    """
+    Check if JsonLogic entry matches a certain 'pattern'.
+    Pattern follows the same structure as a normal JsonLogic entry with
+    the following extensions:
+      - '@' element matches anything:
+        1 == '@'
+        "jsonlogic" == '@'
+        [1, 2] == '@'
+        {'+': [1, 2]} == '@'
+        {'+': [1, 2]} == {'@': [1, 2]}
+        {'+': [1, 2]} == {'+': '@'}
+        {'+': [1, 2]} == {'+': ['@', '@']}
+        {'+': [1, 2]} == {'@': '@'}
+      - 'number' element matches any numeric value:
+        1 == 'number'
+        2.34 == 'number'
+        [1, 2] == ['number', 'number']
+        {'+': [1, 2]} == {'+': ['number', 'number']}
+      - 'string' element matches any string value:
+        "name" == 'string'
+        {'cat': ["json", "logic"]} = {'cat': ['string', 'string']}
+      - 'array' element matches an array (list or tuple) of any length:
+        [] == 'array'
+        [1, 2, 3] = 'array'
+        {'+': [1, 2]} == {'+': 'array'}
+    Use this method to make sure JsonLogic element is correctly constructed.
+    """
+    if pattern == rule:
+        return True
+    if pattern == '@':
+        return True
+    if pattern == 'number':
+        return _is_numeric(rule)
+    if pattern == 'string':
+        return isinstance(rule, str)
+    if pattern == "array":
+        return isinstance(rule, (list, tuple))
+
+    if is_logic(pattern):
+        if is_logic(rule):
+            # Both pattern and rule are JsonLogic entries, go deeper
+            pattern_operator = _get_operator(pattern)
+            rule_operator = _get_operator(rule)
+            if pattern_operator == '@' or pattern_operator == rule_operator:
+                # Operators match, go deeper and try matching values
+                return rule_like(
+                    _get_values(rule, rule_operator, normalize=False),
+                    _get_values(pattern, pattern_operator, normalize=False))
+        return False  # All above assumptions failed
+
+    if isinstance(pattern, (list, tuple)):
+        if isinstance(rule, (list, tuple)):
+            # Both pattern and rule are arrays, go deeper
+            if len(pattern) == len(rule):
+                # Length of pattern and rule arrays are the same,
+                # go deeper and try matching each value
+                return all(
+                    rule_like(rule_elem, pattern_elem)
+                    for rule_elem, pattern_elem in zip(rule, pattern))
+        return False  # All above assumptions failed
+
+    return False  # Not a match, not a nested rule and not an array
 
 
 def add_operation(name, code):
