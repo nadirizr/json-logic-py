@@ -181,6 +181,14 @@ class AdditionalJsonLogicTests(unittest.TestCase):
             jsonLogic({'===': [10000000000000000000, 10000000000000000000.0]}),
             True)
 
+    def test_less_then_type_coercion_peculiarities(self):
+        self.assertIs(jsonLogic({'<': ["11", 2, "3"]}), False)
+        self.assertIs(jsonLogic({'<': ["11", "2", 3]}), True)
+
+    def test_less_then_or_equal_to_type_coercion_peculiarities(self):
+        self.assertIs(jsonLogic({'<=': ["11", 2, "3"]}), False)
+        self.assertIs(jsonLogic({'<=': ["11", "2", 3]}), True)
+
     def test_arithmetic_operations_convert_data_to_apropriate_numerics(self):
         # Conversion
         self.assertIs(jsonLogic({'+': [1]}), 1)

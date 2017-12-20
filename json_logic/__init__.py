@@ -32,6 +32,26 @@ __all__ = (
 _no_argument = object()
 
 
+def _is_array(arg):
+    """Check if argument is an array (an ordered sequence of elements)."""
+    return isinstance(arg, (list, tuple))
+
+
+def _is_dictionary(arg):
+    """Check if argument is an dictionary (or 'object' in JS)."""
+    return isinstance(arg, dict)
+
+
+def _is_boolean(arg):
+    """Check if argument is a boolean value (True or False)."""
+    return isinstance(arg, bool)
+
+
+def _is_string(arg):
+    """Check if argument is a string."""
+    return isinstance(arg, str)
+
+
 def _is_numeric(arg):
     """Check if argument is of a numeric type: float, int or long."""
     return type(arg) in numeric_types
@@ -42,7 +62,7 @@ def _to_numeric(arg):
     Convert a string or other value  into float, integer or long.
     Convert float value to integer if appropriate.
     """
-    if isinstance(arg, str) and '.' in arg:
+    if _is_string(arg) and '.' in arg:
         arg = float(arg)
     if isinstance(arg, float):
         return int(arg) if arg.is_integer() else arg
@@ -59,7 +79,7 @@ def _get_values(logic, operator, normalize=True):
     values = logic[operator]
     # Easy syntax for unary operators like {"var": "x"}
     # instead of strict {"var": ["x"]}
-    if normalize and not isinstance(values, (list, tuple)):
+    if normalize and not _is_array(values):
         values = [values]
     return values
 
@@ -81,9 +101,9 @@ def _expose_operations():
 
 def _equal_to(a, b):
     """Check for non-strict equality ('==') with JS-style type coercion."""
-    if isinstance(a, str) or isinstance(b, str):
+    if _is_string(a) or _is_string(b):
         return str(a) == str(b)
-    if isinstance(a, bool) or isinstance(b, bool):
+    if _is_boolean(a) or _is_boolean(b):
         return bool(a) is bool(b)
     return a == b
 
@@ -116,11 +136,15 @@ def _less_than(a, b, c=_no_argument):
     """
     Check that A is less then B (A < B) or
     that B is exclusively between A and C (A < B < C).
+
+    N.B.: Comparison and type coercion is performed
+    sequentially in pairs: A < B and B < C.
+    So {"<": ["11", 2, "3"]} will evaluate to False,
+    while {"<": ["11", "2", 3]} will evaluate to True.
     """
-    types = set([type(a), type(b)])
-    if float in types or int in types:
+    if _is_numeric(a) or _is_numeric(b):
         try:
-            a, b = float(a), float(b)
+            a, b = _to_numeric(a), _to_numeric(b)
         except TypeError:
             return False  # NaN
     return a < b and (c is _no_argument or _less_than(b, c))
@@ -130,6 +154,11 @@ def _less_than_or_equal_to(a, b, c=_no_argument):
     """
     Check that A is less then or equal to B (A <= B) or
     that B is inclusively between A and C (A <= B <= C).
+
+    N.B.: Comparison and type coercion is performed
+    sequentially in pairs: A <= B and B <= C.
+    So {"<=": ["11", 2, "3"]} will evaluate to False,
+    while {"<=": ["11", "2", 3]} will evaluate to True.
     """
     return \
         (_less_than(a, b) or _equal_to(a, b)) and \
@@ -243,7 +272,7 @@ def _merge(*args):
     """Merge several arrays into one."""
     resulting_array = []
     for arg in args:
-        if isinstance(arg, (list, tuple)):
+        if _is_array(arg):
             resulting_array.extend(arg)
         else:
             resulting_array.append(arg)
@@ -435,7 +464,7 @@ def _filter(data, scopedData, scopedLogic):
     is returned.
     """
     scopedData = jsonLogic(scopedData, data)
-    if not isinstance(scopedData, (list, tuple)):
+    if not _is_array(scopedData):
         return []
     return list(filter(
         lambda datum: _truthy(jsonLogic(scopedLogic, datum)),
@@ -470,7 +499,7 @@ def _map(data, scopedData, scopedLogic):
     is returned.
     """
     scopedData = jsonLogic(scopedData, data)
-    if not isinstance(scopedData, (list, tuple)):
+    if not _is_array(scopedData):
         return []
     return list(map(
         lambda datum: jsonLogic(scopedLogic, datum),
@@ -513,7 +542,7 @@ def _reduce(data, scopedData, scopedLogic, initial=None):
     value is returned.
     """
     scopedData = jsonLogic(scopedData, data)
-    if not isinstance(scopedData, (list, tuple)):
+    if not _is_array(scopedData):
         return initial
     return reduce(
         lambda accumulator, current: jsonLogic(
@@ -554,7 +583,7 @@ def _all(data, scopedData, scopedLogic):
     elements stops upon encountering first falsy value.
     """
     scopedData = jsonLogic(scopedData, data)
-    if not isinstance(scopedData, (list, tuple)):
+    if not _is_array(scopedData):
         return False
     if len(scopedData) == 0:
         return False  # "all" of an empty set is false
@@ -692,9 +721,7 @@ def _missing(data, *args):
     times it will also be represented several times in the resulting array.
     """
     missing_array = []
-    var_names = \
-        args[0] if args and isinstance(args[0], (list, tuple)) \
-        else args
+    var_names = args[0] if args and _is_array(args[0]) else args
     for var_name in var_names:
         if _var(data, var_name) in (None, ""):
             missing_array.append(var_name)
@@ -741,7 +768,7 @@ def jsonLogic(logic, data=None):
     """
 
     # Is this an array of JsonLogic entries?
-    if isinstance(logic, (list, tuple)):
+    if _is_array(logic):
         return list(map(lambda subset: jsonLogic(subset, data), logic))
 
     # You've recursed to a primitive, stop!
@@ -796,11 +823,13 @@ def jsonLogic(logic, data=None):
         current_operation = _custom_operations
         for idx, suboperator in enumerate(suboperators):
             try:
-                if isinstance(current_operation, (dict, list, tuple)):
+                if _is_dictionary(current_operation):
                     try:
                         current_operation = current_operation[suboperator]
                     except (KeyError, IndexError):
                         current_operation = current_operation[int(suboperator)]
+                elif _is_array(current_operation):
+                    current_operation = current_operation[int(suboperator)]
                 else:
                     current_operation = getattr(current_operation, suboperator)
             except (KeyError, IndexError, AttributeError, ValueError):
@@ -819,7 +848,7 @@ def is_logic(logic):
     A logic entry is a dictionary with exactly one key.
     An array of logic entries is not considered a logic entry itself.
     """
-    return isinstance(logic, dict) and len(logic.keys()) == 1
+    return _is_dictionary(logic) and len(logic.keys()) == 1
 
 
 def uses_data(logic):
@@ -835,10 +864,8 @@ def uses_data(logic):
         if operator == "var":
             variables.add(values[0])
         else:
-            for subset in values:
-                for value in uses_data(subset):
-                    variables.add(value)
-    return list(sorted(variables))
+            variables.update(*map(uses_data, values))
+    return sorted(variables)
 
 
 def rule_like(rule, pattern):
@@ -863,7 +890,7 @@ def rule_like(rule, pattern):
       - 'string' element matches any string value:
         "name" == 'string'
         {'cat': ["json", "logic"]} = {'cat': ['string', 'string']}
-      - 'array' element matches an array (list or tuple) of any length:
+      - 'array' element matches an array of any length:
         [] == 'array'
         [1, 2, 3] = 'array'
         {'+': [1, 2]} == {'+': 'array'}
@@ -876,9 +903,9 @@ def rule_like(rule, pattern):
     if pattern == 'number':
         return _is_numeric(rule)
     if pattern == 'string':
-        return isinstance(rule, str)
+        return _is_string(rule)
     if pattern == "array":
-        return isinstance(rule, (list, tuple))
+        return _is_array(rule)
 
     if is_logic(pattern):
         if is_logic(rule):
@@ -892,8 +919,8 @@ def rule_like(rule, pattern):
                     _get_values(pattern, pattern_operator, normalize=False))
         return False  # All above assumptions failed
 
-    if isinstance(pattern, (list, tuple)):
-        if isinstance(rule, (list, tuple)):
+    if _is_array(pattern):
+        if _is_array(rule):
             # Both pattern and rule are arrays, go deeper
             if len(pattern) == len(rule):
                 # Length of pattern and rule arrays are the same,
