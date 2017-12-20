@@ -70,12 +70,12 @@ def _to_numeric(arg):
 
 
 def _get_operator(logic):
-    """Return operator name from JsonLogic entry."""
+    """Return operator name from JsonLogic rule."""
     return str(next(iter(logic.keys())))
 
 
 def _get_values(logic, operator, normalize=True):
-    """Return array of values from JsonLogic entry by operator name."""
+    """Return array of values from JsonLogic rule by operator name."""
     values = logic[operator]
     # Easy syntax for unary operators like {"var": "x"}
     # instead of strict {"var": ["x"]}
@@ -111,6 +111,7 @@ def _equal_to(a, b):
 def _strict_equal_to(a, b):
     """
     Check for strict equality ('===') including type equality.
+
     N.B.: Core JsonLogic does not differentiate between different numeric
     types and considers them strictly equal to each other.
     E.g.: {"===": [1, 1.0]}
@@ -440,13 +441,13 @@ def _filter(data, scopedData, scopedLogic):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    'scopedLogic' is a normal JsonLogic rule that uses a 'scopeData'
     element as its data object.
 
     'scopedLogic' must evaluate to a truthy value in order for the current
@@ -477,13 +478,13 @@ def _map(data, scopedData, scopedLogic):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    'scopedLogic' is a normal JsonLogic rule that uses a 'scopeData'
     element as its data object.
 
     Result returned by 'scopedLogic' is included into the resulting array.
@@ -515,13 +516,13 @@ def _reduce(data, scopedData, scopedLogic, initial=None):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that is applied to the following
+    'scopedLogic' is a normal JsonLogic rule that is applied to the following
     data object: {'accumulator': accumulator, 'current': current}; where
     'accumulator' is the result of all previous iterations (of 'initial' if
     none had occurred so far), and 'current' is the value of the current
@@ -557,13 +558,13 @@ def _all(data, scopedData, scopedLogic):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    'scopedLogic' is a normal JsonLogic rule that uses a 'scopeData'
     element as its data object.
 
     Return True if 'scopedLogic' evaluates to a truthy value for all
@@ -600,13 +601,13 @@ def _none(data, scopedData, scopedLogic):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    'scopedLogic' is a normal JsonLogic rule that uses a 'scopeData'
     element as its data object.
 
     Return True if 'scopedLogic' evaluates to a falsy value for all
@@ -636,13 +637,13 @@ def _some(data, scopedData, scopedLogic):
 
     'scopedData' argument can be:
       - a manually specified data array;
-      - a JsonLogic entry returning a data array;
+      - a JsonLogic rule returning a data array;
       - a JsonLogic 'var' operation returning part of the data object
         containing a data array; like: {"var": "a"};
       - a JsonLogic 'var' operation returning the whole data object
         if it is an array itself; like: {"var": ""}.
 
-    'scopedLogic' is a normal JsonLogic entry that uses a 'scopeData'
+    'scopedLogic' is a normal JsonLogic rule that uses a 'scopeData'
     element as its data object.
 
     Return True if 'scopedLogic' evaluates to a truthy value for at least
@@ -682,10 +683,10 @@ def _var(data, var_name=None, default=None):
     Get variable value from the data object.
     Can also access variable properties (to any depth) via dot-notation:
         "variable.property"
-        "variable.property.sub_property"
+        "variable.property.subproperty"
     The same is true for array elements that can be accessed by index:
         "array_variable.5"
-        "variable.array_property.0.sub_property"
+        "variable.array_property.0.subproperty"
     Return the specified default value if variable, its property or element
     is not found. Return None if no default value is specified.
     Return the whole data object if variable name is None or an empty string.
@@ -762,14 +763,14 @@ _data_operations = {
 def jsonLogic(logic, data=None):
     """
     Evaluate provided JsonLogic using given data (if any).
-    If a single JsonLogic entry is provided - return a single resulting value.
-    If an array of JsonLogic entries is provided - return an array of each
-    entry's resulting values.
+    If a single JsonLogic rule is provided - return a single resulting value.
+    If an array of JsonLogic rule is provided - return an array of each rule's
+    resulting values.
     """
 
-    # Is this an array of JsonLogic entries?
+    # Is this an array of JsonLogic rules?
     if _is_array(logic):
-        return list(map(lambda subset: jsonLogic(subset, data), logic))
+        return list(map(lambda sublogic: jsonLogic(sublogic, data), logic))
 
     # You've recursed to a primitive, stop!
     if not is_logic(logic):
@@ -844,18 +845,19 @@ def jsonLogic(logic, data=None):
 
 def is_logic(logic):
     """
-    Determine if specified entry is a logic entry or not.
-    A logic entry is a dictionary with exactly one key.
-    An array of logic entries is not considered a logic entry itself.
+    Determine if specified object is a JsonLogic rule or not.
+    A JsonLogic rule is a dictionary with exactly one key.
+    An array of JsonLogic rules is not considered a rule itself.
     """
     return _is_dictionary(logic) and len(logic.keys()) == 1
 
 
 def uses_data(logic):
     """
-    Return a unique array of variables used in JsonLogic entry.
+    Return a unique array of variables used in JsonLogic rule.
+
     N.B.: It does not cover the case where the argument to 'var'
-    is itself a JsonLogic entry.
+    is itself a JsonLogic rule.
     """
     variables = set()
     if is_logic(logic):
@@ -870,9 +872,9 @@ def uses_data(logic):
 
 def rule_like(rule, pattern):
     """
-    Check if JsonLogic entry matches a certain 'pattern'.
-    Pattern follows the same structure as a normal JsonLogic entry with
-    the following extensions:
+    Check if JsonLogic rule matches a certain 'pattern'.
+    Pattern follows the same structure as a normal JsonLogic rule
+    with the following extensions:
       - '@' element matches anything:
         1 == '@'
         "jsonlogic" == '@'
@@ -894,7 +896,7 @@ def rule_like(rule, pattern):
         [] == 'array'
         [1, 2, 3] = 'array'
         {'+': [1, 2]} == {'+': 'array'}
-    Use this method to make sure JsonLogic element is correctly constructed.
+    Use this method to make sure JsonLogic rule is correctly constructed.
     """
     if pattern == rule:
         return True
@@ -909,7 +911,7 @@ def rule_like(rule, pattern):
 
     if is_logic(pattern):
         if is_logic(rule):
-            # Both pattern and rule are JsonLogic entries, go deeper
+            # Both pattern and rule are a valid JsonLogic rule, go deeper
             pattern_operator = _get_operator(pattern)
             rule_operator = _get_operator(rule)
             if pattern_operator == '@' or pattern_operator == rule_operator:
