@@ -20,6 +20,8 @@ import warnings
 __all__ = (
     'jsonLogic',
     'is_logic',
+    'uses_data',
+    'rule_like',
     'operations',
     'add_operation',
     'rm_operation'
