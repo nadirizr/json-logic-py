@@ -6,12 +6,8 @@ https://github.com/jwadhams/json-logic-js
 
 # Python 2 fallbacks
 from __future__ import division, unicode_literals
-try:
-    str = unicode
-except NameError:
-    pass
 from six.moves import reduce
-from six import integer_types
+from six import text_type, integer_types, advance_iterator
 numeric_types = integer_types + (float,)
 
 import logging
@@ -51,7 +47,7 @@ def _is_boolean(arg):
 
 def _is_string(arg):
     """Check if argument is a string."""
-    return isinstance(arg, str)
+    return isinstance(arg, text_type)
 
 
 def _is_numeric(arg):
@@ -73,7 +69,7 @@ def _to_numeric(arg):
 
 def _get_operator(logic):
     """Return operator name from JsonLogic rule."""
-    return str(next(iter(logic.keys())))
+    return text_type(advance_iterator(iter(logic.keys())))
 
 
 def _get_values(logic, operator, normalize=True):
@@ -104,7 +100,7 @@ def _expose_operations():
 def _equal_to(a, b):
     """Check for non-strict equality ('==') with JS-style type coercion."""
     if _is_string(a) or _is_string(b):
-        return str(a) == str(b)
+        return text_type(a) == text_type(b)
     if _is_boolean(a) or _is_boolean(b):
         return bool(a) is bool(b)
     return a == b
@@ -203,7 +199,7 @@ def _in(a, b):
 
 def _concatenate(*args):
     """Concatenate string elements into a single string."""
-    return "".join(str(arg) for arg in args)
+    return "".join(text_type(arg) for arg in args)
 
 
 def _substring(source, start, length=None):
@@ -303,7 +299,7 @@ def _method(obj, method, args=[]):
     gets datetime.date object from 'today' variable and returns the number of
     the month via 'month' property.
     """
-    method = getattr(obj, str(method))
+    method = getattr(obj, text_type(method))
     if callable(method):
         return method(*args)
     return method
@@ -696,7 +692,7 @@ def _var(data, var_name=None, default=None):
     if var_name is None or var_name == '':
         return data  # Return the whole data object
     try:
-        for key in str(var_name).split('.'):
+        for key in text_type(var_name).split('.'):
             try:
                 data = data[key]
             except TypeError:
@@ -966,14 +962,14 @@ def add_operation(name, code):
     but not logical, scoped or data retrieval ones.
     """
     global _custom_operations
-    _custom_operations[str(name)] = code
+    _custom_operations[text_type(name)] = code
     _expose_operations()
 
 
 def rm_operation(name):
     """Remove previously added custom common JsonLogic operation."""
     global _custom_operations
-    del(_custom_operations[str(name)])
+    del(_custom_operations[text_type(name)])
     _expose_operations()
 
 
