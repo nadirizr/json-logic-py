@@ -222,7 +222,7 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         logic = {'method': [{'var': 'today'}, 'isoformat']}
         data = {'today': todays_date}
         returned_value = jsonLogic(logic, data)
-        self.assertIsInstance(returned_value, str)#six.text_type)
+        self.assertIsInstance(returned_value, six.string_types)
         self.assertEqual(returned_value, todays_date.isoformat())
 
     def test_method_operation_with_method_with_arguments(self):
