@@ -34,8 +34,8 @@ setup(
     url='https://github.com/qubitdigital/json-logic-py',
 
     # Author details
-    author='nadir.izr',
-    author_email='nadir@soundmindtech.com',
+    author='mohsin.niazi',
+    author_email='mohsin.niazi@qubit.com',
 
     # Choose your license
     license='MIT',
