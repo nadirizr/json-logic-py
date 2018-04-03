@@ -2,15 +2,17 @@
 
 from __future__ import unicode_literals
 
-import six
+import datetime
 import json
 import logging
-import datetime
 import unittest
+
 try:
     from urllib.request import urlopen
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from urllib2 import urlopen
+# noinspection PyUnresolvedReferences
 from json_logic import \
     jsonLogic, \
     is_logic, \
@@ -25,7 +27,6 @@ from json_logic import \
     _data_operations, \
     _common_operations, \
     _unsupported_operations
-
 
 # Python 2 fallback
 if not hasattr(unittest.TestCase, 'assertRaisesRegex'):
@@ -58,6 +59,7 @@ def shared_test(function, url):
     def create_test(cls, count, arg1, arg2, expected):
         def test(self):
             self.assertEqual(function(arg1, arg2), expected)
+
         test.__doc__ = "{},  {}  =>  {}".format(arg1, arg2, expected)
         setattr(cls, "test_{}".format(count), test)
 
@@ -222,7 +224,7 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         logic = {'method': [{'var': 'today'}, 'isoformat']}
         data = {'today': todays_date}
         returned_value = jsonLogic(logic, data)
-        self.assertIsInstance(returned_value, str)#six.text_type)
+        self.assertIsInstance(returned_value, str)  # six.text_type)
         self.assertEqual(returned_value, todays_date.isoformat())
 
     def test_method_operation_with_method_with_arguments(self):
@@ -271,8 +273,8 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         self.assertSequenceEqual(conditions, [True])
         self.assertSequenceEqual(consequents, ["first"])
 
-        del(conditions[:])
-        del(consequents[:])
+        del (conditions[:])
+        del (consequents[:])
 
         jsonLogic({'if': [
             {'push_if': [False]},
@@ -284,8 +286,8 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         self.assertSequenceEqual(conditions, [False, True])
         self.assertSequenceEqual(consequents, ["second"])
 
-        del(conditions[:])
-        del(consequents[:])
+        del (conditions[:])
+        del (consequents[:])
 
         jsonLogic({'if': [
             {'push_if': [False]},
@@ -319,7 +321,7 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         ]})
         self.assertSequenceEqual(consequents, ["first"])
 
-        del(consequents[:])
+        del (consequents[:])
 
         jsonLogic({'?:': [
             False,
@@ -341,12 +343,12 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         jsonLogic({'and': [{'push': [False]}, {'push': [False]}]})
         self.assertSequenceEqual(evaluated_elements, [False])
 
-        del(evaluated_elements[:])
+        del (evaluated_elements[:])
 
         jsonLogic({'and': [{'push': [False]}, {'push': [True]}]})
         self.assertSequenceEqual(evaluated_elements, [False])
 
-        del(evaluated_elements[:])
+        del (evaluated_elements[:])
 
         jsonLogic({'and': [{'push': [True]}, {'push': [True]}]})
         self.assertSequenceEqual(evaluated_elements, [True, True])
@@ -364,17 +366,17 @@ class AdditionalJsonLogicTests(unittest.TestCase):
         jsonLogic({'or': [{'push': [False]}, {'push': [False]}]})
         self.assertSequenceEqual(evaluated_elements, [False, False])
 
-        del(evaluated_elements[:])
+        del (evaluated_elements[:])
 
         jsonLogic({'or': [{'push': [False]}, {'push': [True]}]})
         self.assertSequenceEqual(evaluated_elements, [False, True])
 
-        del(evaluated_elements[:])
+        del (evaluated_elements[:])
 
         jsonLogic({'or': [{'push': [True]}, {'push': [False]}]})
         self.assertSequenceEqual(evaluated_elements, [True])
 
-        del(evaluated_elements[:])
+        del (evaluated_elements[:])
 
         jsonLogic({'or': [{'push': [True]}, {'push': [True]}]})
         self.assertSequenceEqual(evaluated_elements, [True])
@@ -455,6 +457,7 @@ class AdditionalJsonLogicTests(unittest.TestCase):
     def test_add_operation_with_simple_method(self):
         def add_to_five(*args):
             return sum((5,) + args)
+
         self.assertRaisesRegex(
             ValueError, "Unrecognized operation",
             jsonLogic, {'add_to_five': [3]})
@@ -587,6 +590,16 @@ class AdditionalJsonLogicTests(unittest.TestCase):
             rm_operation('+')
         self.assertIn('+', operations)
         self.assertIsNot(operations['+'], haha)
+
+    def test_none_params(self):
+        self.assertFalse(jsonLogic({
+            'and': [
+                {'<': [None, None]},
+                {'<=': [None, None]},
+                {'>': [None, None]},
+                {'>=': [None, None]}
+            ]
+        }))
 
 
 if __name__ == '__main__':
