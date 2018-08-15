@@ -3,11 +3,12 @@ This is a Python implementation of the JsonLogic JS library:
 https://github.com/jwadhams/json-logic-js
 """
 
-
 # Python 2 fallbacks
 from __future__ import division, unicode_literals
-from six.moves import reduce
+
 from six import text_type, integer_types, advance_iterator
+from six.moves import reduce
+
 numeric_types = integer_types + (float,)
 
 import logging
@@ -95,6 +96,15 @@ def _expose_operations():
     return operations
 
 
+def _not_none(fn):
+    def wrapped(*args):
+        if len(args) > 1 and all([arg is None for arg in args]):
+            return False
+        return fn(*args)
+
+    return wrapped
+
+
 # Common operations
 
 def _equal_to(a, b):
@@ -131,6 +141,7 @@ def _not_strict_equal_to(a, b):
     return not _strict_equal_to(a, b)
 
 
+@_not_none
 def _less_than(a, b, c=_no_argument):
     """
     Check that A is less then B (A < B) or
@@ -149,6 +160,7 @@ def _less_than(a, b, c=_no_argument):
     return a < b and (c is _no_argument or _less_than(b, c))
 
 
+@_not_none
 def _less_than_or_equal_to(a, b, c=_no_argument):
     """
     Check that A is less then or equal to B (A <= B) or
@@ -164,11 +176,13 @@ def _less_than_or_equal_to(a, b, c=_no_argument):
         (c is _no_argument or _less_than_or_equal_to(b, c))
 
 
+@_not_none
 def _greater_than(a, b):
     """Check that A is greater then B (A > B)."""
     return _less_than(b, a)
 
 
+@_not_none
 def _greater_than_or_equal_to(a, b):
     """Check that A is greater then or equal to B (A >= B)."""
     return _less_than_or_equal_to(b, a)
@@ -342,7 +356,6 @@ def _count(*args):
 _unsupported_operations = {
     'count': _count
 }
-
 
 # Custom operation (may be added manually)
 
@@ -969,7 +982,7 @@ def add_operation(name, code):
 def rm_operation(name):
     """Remove previously added custom common JsonLogic operation."""
     global _custom_operations
-    del(_custom_operations[text_type(name)])
+    del (_custom_operations[text_type(name)])
     _expose_operations()
 
 
