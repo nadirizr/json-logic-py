@@ -31,7 +31,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/qubitdigital/json-logic-py',
+    url='https://github.com/qubitproducts/json-logic-py',
 
     # Author details
     author='mohsin.niazi',
