@@ -18,22 +18,24 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='json_logic',
+    name='json_logic_qubit',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.7.0-alpha',
+    version='0.9',
 
-    description='Build complex rules, serialize them as JSON, and execute them in Python',
+    description=(
+        'Build complex rules, serialize them as JSON, ' +
+        'and execute them in Python'),
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/nadirizr/json-logic-py',
+    url='https://github.com/qubitproducts/json-logic-py',
 
     # Author details
-    author='nadir.izr',
-    author_email='nadir@soundmindtech.com',
+    author='mohsin.niazi',
+    author_email='mohsin.niazi@qubit.com',
 
     # Choose your license
     license='MIT',
@@ -56,12 +58,14 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     # What does your project relate to?

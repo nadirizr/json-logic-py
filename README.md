@@ -1,5 +1,14 @@
 # json-logic-py
+**NOTE:** This is fork of unmaintained [json-logic-py](https://github.com/nadirizr/json-logic-py)
 
+## Installation
+
+The best way to install this library is via [PIP](https://pypi.python.org/pypi/):
+
+```bash
+pip install json-logic-qubit
+```
+## Introduction
 This parser accepts [JsonLogic](http://jsonlogic.com) rules and executes them in Python.
 
 This is a Python porting of the excellent GitHub project by [jwadhams](https://github.com/jwadhams) for JavaScript: [json-logic-js](https://github.com/jwadhams/json-logic-js).
@@ -101,18 +110,4 @@ jsonLogic(True, data_will_be_ignored);
 #Never
 jsonLogic(False, i_wasnt_even_supposed_to_be_here);
 # False
-```
-
-## Installation
-
-The best way to install this library is via [PIP](https://pypi.python.org/pypi/):
-
-```bash
-pip install json-logic
-```
-
-If that doesn't suit you, and you want to manage updates yourself, the entire library is self-contained in `json_logic.py` and you can download it straight into your project as you see fit.
-
-```bash
-curl -O https://raw.githubusercontent.com/nadirizr/json-logic-py/master/json_logic.py
 ```
