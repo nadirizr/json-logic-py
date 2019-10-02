@@ -97,6 +97,12 @@ def merge(*args):
             ret.append(arg)
     return ret
 
+def in_operator(a, b):
+    """Implements the 'in' operator for work with lists."""
+    if isinstance(b, list):
+        return a in b
+    else:
+        return False
 
 def get_var(data, var_name, not_found=None):
     """Gets variable value from data dictionary."""
@@ -168,6 +174,7 @@ operations = {
     "max": lambda *args: max(args),
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
+    "in": in_operator,
 }
 
 
