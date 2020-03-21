@@ -140,6 +140,9 @@ def missing_some(data, min_required, args):
                 return []
     return ret
 
+def pow(*args):
+    """Implements 'pow' returns the base to the exponent power"""
+    return to_numeric(args[0]) ** to_numeric(args[1])
 
 operations = {
     "==": soft_equals,
@@ -168,6 +171,7 @@ operations = {
     "max": lambda *args: max(args),
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
+    "pow": pow,
 }
 
 

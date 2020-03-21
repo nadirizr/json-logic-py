@@ -364,6 +364,13 @@ class JSONLogicTest(unittest.TestCase):
         """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
 
+    def test_pow(self):
+        """
+            returns the base to the exponent power, that is, base ** exponent.
+        """
+        self.assertEqual(jsonLogic({"pow": [4, 4]}), 256)
+        self.assertEqual(jsonLogic({"pow": [6, 4]}), 1296)
+
 
 class SharedTests(unittest.TestCase):
     """This runs the tests from http://jsonlogic.com/tests.json."""
