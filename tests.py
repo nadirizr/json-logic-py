@@ -3,6 +3,7 @@ Tests for jsonLogic.
 """
 from __future__ import unicode_literals
 
+from datetime import date, timedelta
 import json
 import unittest
 try:
@@ -89,6 +90,24 @@ class JSONLogicTest(unittest.TestCase):
                 {"temp": 100, "pie": {"filling": "apple"}}
             )
         )
+
+    def test_date(self):
+        test_date = date(2021, 10, 1)
+
+        self.assertEqual(test_date, jsonLogic({"date": "2021-10-01"}))
+        self.assertEqual(test_date, jsonLogic(
+            {"date": {"var": "testDate"}},
+            {"testDate": "2021-10-01"}
+        ))
+        self.assertTrue(jsonLogic({"<=": [{"date": "2020-01-01"}, {"date": "2021-01-01"}]}))
+
+        self.assertEqual(
+            timedelta(days=366),
+            jsonLogic({"-": [{"date": "2021-01-01"}, {"date": "2020-01-01"}]})
+        )
+
+
+
 
     def test_missing(self):
         """

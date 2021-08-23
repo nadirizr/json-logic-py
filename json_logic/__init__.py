@@ -2,7 +2,8 @@
 # https://github.com/jwadhams/json-logic-js
 from __future__ import unicode_literals
 
-import sys
+from datetime import date, timedelta
+
 from six.moves import reduce
 import logging
 
@@ -112,6 +113,10 @@ def get_var(data, var_name, not_found=None):
         return data
 
 
+def get_date(data, date_str, *args):
+    return date.fromisoformat(date_str)
+
+
 def missing(data, *args):
     """Implements the missing operator for finding missing variables."""
     not_found = object()
@@ -192,6 +197,8 @@ def jsonLogic(tests, data=None):
 
     if operator == 'var':
         return get_var(data, *values)
+    if operator == 'date':
+        return get_date(data, *values)
     if operator == 'missing':
         return missing(data, *values)
     if operator == 'missing_some':
