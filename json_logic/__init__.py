@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from six.moves import reduce
 import logging
@@ -113,7 +114,7 @@ def get_var(data, var_name, not_found=None):
         return data
 
 
-def get_date(data, date_str, *args):
+def get_date(date_str, *args):
     return date.fromisoformat(date_str)
 
 
@@ -174,6 +175,8 @@ operations = {
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
     "today": lambda *args: date.today(),
+    "date": get_date,
+    "years": lambda year: relativedelta(years=year)
 }
 
 
@@ -198,8 +201,6 @@ def jsonLogic(tests, data=None):
 
     if operator == 'var':
         return get_var(data, *values)
-    if operator == 'date':
-        return get_date(data, *values)
     if operator == 'missing':
         return missing(data, *values)
     if operator == 'missing_some':

@@ -114,6 +114,12 @@ class JSONLogicTest(unittest.TestCase):
             self.assertEqual(test_date, jsonLogic({"today": []}))
             self.assertTrue(jsonLogic({"==": [{"today": []}, {"date": "2021-10-01"}]}))
 
+    def test_subtract_years_from_dates(self):
+        self.assertEqual(
+            date(2003, 1, 1),
+            jsonLogic({"-": [{"date": "2021-01-01"}, {"years": 18}]})
+        )
+
     def test_missing(self):
         """
         Takes an array of data keys to search for (same format as var).
