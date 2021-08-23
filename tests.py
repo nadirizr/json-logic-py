@@ -4,6 +4,7 @@ Tests for jsonLogic.
 from __future__ import unicode_literals
 
 from datetime import date, timedelta
+from freezegun import freeze_time
 import json
 import unittest
 try:
@@ -106,8 +107,12 @@ class JSONLogicTest(unittest.TestCase):
             jsonLogic({"-": [{"date": "2021-01-01"}, {"date": "2020-01-01"}]})
         )
 
+    def test_today(self):
+        test_date = date(2021, 10, 1)
 
-
+        with freeze_time("2021-10-01"):
+            self.assertEqual(test_date, jsonLogic({"today": []}))
+            self.assertTrue(jsonLogic({"==": [{"today": []}, {"date": "2021-10-01"}]}))
 
     def test_missing(self):
         """

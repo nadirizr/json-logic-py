@@ -2,7 +2,7 @@
 # https://github.com/jwadhams/json-logic-js
 from __future__ import unicode_literals
 
-from datetime import date, timedelta
+from datetime import date
 
 from six.moves import reduce
 import logging
@@ -173,6 +173,7 @@ operations = {
     "max": lambda *args: max(args),
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
+    "today": lambda *args: date.today(),
 }
 
 
