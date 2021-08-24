@@ -77,8 +77,19 @@ def to_numeric(arg):
             return int(arg)
     return arg
 
+
+def sum_dates(*args):
+    # Since sum() converts to ints or floats, in the case of dates the normal + operator is needed
+    total = to_numeric(args[0])
+    for arg in args[1:]:
+        total += to_numeric(arg)
+    return total
+
+
 def plus(*args):
     """Sum converts either to ints or to floats."""
+    if any([isinstance(arg, date) for arg in args]):
+        return sum_dates(*args)
     return sum(to_numeric(arg) for arg in args)
 
 

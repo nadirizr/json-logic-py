@@ -120,6 +120,12 @@ class JSONLogicTest(unittest.TestCase):
             jsonLogic({"-": [{"date": "2021-01-01"}, {"years": 18}]})
         )
 
+    def test_sum_years_from_dates(self):
+        self.assertEqual(
+            date(2021, 1, 1),
+            jsonLogic({"+": [{"date": "2003-01-01"}, {"years": 18}]})
+        )
+
     def test_missing(self):
         """
         Takes an array of data keys to search for (same format as var).
