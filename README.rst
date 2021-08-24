@@ -118,6 +118,32 @@ to eat unless it's cooler than 110 degrees, *and* filled with apples.
     jsonLogic(rules, data)
     # True
 
+Dates
+~~~~~
+
+You can use the ``date`` operator to include dates in the json logic. The dates are internally converted to ``datetime.date``
+objects, and then the comparison is performed.
+
+.. code:: python
+
+    rule = {"<=": [{"date": {"var": "testDate"}}, {"date": "2021-01-01"}]}
+    data = {"testDate": "2020-01-01"}
+
+    jsonLogic(rule, data)
+    # True
+
+
+The operator ``{"today": []}`` gets the current date. It is also possible to add/subtract years to a date. This makes use
+of ``relativedelta`` from ``dateutils``.
+
+.. code:: python
+
+    rule = {"-": [{"date": "2021-01-01"}, {"years": 18}]}
+
+    jsonLogic(rule)
+    # date(2003, 1, 1)
+
+
 Always and Never
 ~~~~~~~~~~~~~~~~
 
