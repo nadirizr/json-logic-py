@@ -1,22 +1,13 @@
 # This is a Python implementation of the following jsonLogic JS library:
 # https://github.com/jwadhams/json-logic-js
-from __future__ import unicode_literals
 
+import logging
 from datetime import date
+from functools import reduce
+
 from dateutil.relativedelta import relativedelta
 
-from six.moves import reduce
-import logging
-
 logger = logging.getLogger(__name__)
-
-try:
-    unicode
-except NameError:
-    pass
-else:
-    # Python 2 fallback.
-    str = unicode
 
 
 def if_(*args):
@@ -60,9 +51,7 @@ def less(a, b, *args):
 
 def less_or_equal(a, b, *args):
     """Implements the '<=' operator with JS-style type coertion."""
-    return (
-        less(a, b) or soft_equals(a, b)
-    ) and (not args or less_or_equal(b, *args))
+    return (less(a, b) or soft_equals(a, b)) and (not args or less_or_equal(b, *args))
 
 
 def to_numeric(arg):
@@ -71,7 +60,7 @@ def to_numeric(arg):
     This is important, because e.g. {"!==": [{"+": "0"}, 0.0]}
     """
     if isinstance(arg, str):
-        if '.' in arg:
+        if "." in arg:
             return float(arg)
         else:
             return int(arg)
@@ -114,7 +103,7 @@ def merge(*args):
 def get_var(data, var_name, not_found=None):
     """Gets variable value from data dictionary."""
     try:
-        for key in str(var_name).split('.'):
+        for key in str(var_name).split("."):
             try:
                 data = data[key]
             except TypeError:
@@ -187,7 +176,7 @@ operations = {
     "count": lambda *args: sum(1 if a else 0 for a in args),
     "today": lambda *args: date.today(),
     "date": get_date,
-    "years": lambda year: relativedelta(years=year)
+    "years": lambda year: relativedelta(years=year),
 }
 
 
@@ -210,11 +199,11 @@ def jsonLogic(tests, data=None):
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
 
-    if operator == 'var':
+    if operator == "var":
         return get_var(data, *values)
-    if operator == 'missing':
+    if operator == "missing":
         return missing(data, *values)
-    if operator == 'missing_some':
+    if operator == "missing_some":
         return missing_some(data, *values)
 
     if operator not in operations:

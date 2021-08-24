@@ -1,0 +1,56 @@
+name: Run CI
+
+# Run this workflow every time a new commit pushed to your repository
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    name: Tests
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: pip install tox tox-travis codecov
+
+      - name: Run tests
+        run: |
+          tox
+          codecov --file reports/coverage.xml
+        env:
+          TOXENV: py38
+
+  publish:
+    name: Publish package to PyPI
+    runs-on: ubuntu-latest
+    needs: tests
+
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Build sdist and wheel
+        run: |
+          pip install pip setuptools wheel --upgrade
+          python setup.py sdist bdist_wheel
+
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
