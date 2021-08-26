@@ -4,12 +4,11 @@ json-logic-py
 This parser accepts `JsonLogic <http://jsonlogic.com>`__ rules and
 executes them in Python.
 
-This is a Python porting of the excellent GitHub project by
-`jwadhams <https://github.com/jwadhams>`__ for JavaScript:
+This is a fork of `json-logic-py <https://github.com/nadirizr/json-logic-py>`__ by
+`nadir.izr <https://github.com/nadirizr>`__, which is a Python porting of the
+GitHub project by `jwadhams <https://github.com/jwadhams>`__ for JavaScript:
 `json-logic-js <https://github.com/jwadhams/json-logic-js>`__.
 
-All credit goes to him, this is simply an implementation of the same
-logic in Python (small differences below).
 
 The JsonLogic format is designed to allow you to share rules (logic)
 between front-end and back-end code (regardless of language difference),
