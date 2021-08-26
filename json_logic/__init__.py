@@ -2,7 +2,9 @@
 # https://github.com/jwadhams/json-logic-js
 from __future__ import unicode_literals
 
-import sys
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
 from six.moves import reduce
 import logging
 
@@ -75,8 +77,19 @@ def to_numeric(arg):
             return int(arg)
     return arg
 
+
+def sum_dates(*args):
+    # Since sum() converts to ints or floats, in the case of dates the normal + operator is needed
+    total = args[0]
+    for arg in args[1:]:
+        total += arg
+    return total
+
+
 def plus(*args):
     """Sum converts either to ints or to floats."""
+    if any([isinstance(arg, date) for arg in args]):
+        return sum_dates(*args)
     return sum(to_numeric(arg) for arg in args)
 
 
@@ -110,6 +123,10 @@ def get_var(data, var_name, not_found=None):
         return not_found
     else:
         return data
+
+
+def get_date(date_str, *args):
+    return date.fromisoformat(date_str)
 
 
 def missing(data, *args):
@@ -168,6 +185,9 @@ operations = {
     "max": lambda *args: max(args),
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
+    "today": lambda *args: date.today(),
+    "date": get_date,
+    "years": lambda year: relativedelta(years=year)
 }
 
 

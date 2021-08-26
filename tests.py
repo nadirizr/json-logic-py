@@ -3,6 +3,8 @@ Tests for jsonLogic.
 """
 from __future__ import unicode_literals
 
+from datetime import date, timedelta
+from freezegun import freeze_time
 import json
 import unittest
 try:
@@ -88,6 +90,40 @@ class JSONLogicTest(unittest.TestCase):
                 ]},
                 {"temp": 100, "pie": {"filling": "apple"}}
             )
+        )
+
+    def test_date(self):
+        test_date = date(2021, 10, 1)
+
+        self.assertEqual(test_date, jsonLogic({"date": "2021-10-01"}))
+        self.assertEqual(test_date, jsonLogic(
+            {"date": {"var": "testDate"}},
+            {"testDate": "2021-10-01"}
+        ))
+        self.assertTrue(jsonLogic({"<=": [{"date": "2020-01-01"}, {"date": "2021-01-01"}]}))
+
+        self.assertEqual(
+            timedelta(days=366),
+            jsonLogic({"-": [{"date": "2021-01-01"}, {"date": "2020-01-01"}]})
+        )
+
+    def test_today(self):
+        test_date = date(2021, 10, 1)
+
+        with freeze_time("2021-10-01"):
+            self.assertEqual(test_date, jsonLogic({"today": []}))
+            self.assertTrue(jsonLogic({"==": [{"today": []}, {"date": "2021-10-01"}]}))
+
+    def test_subtract_years_from_dates(self):
+        self.assertEqual(
+            date(2003, 1, 1),
+            jsonLogic({"-": [{"date": "2021-01-01"}, {"years": 18}]})
+        )
+
+    def test_sum_years_from_dates(self):
+        self.assertEqual(
+            date(2021, 1, 1),
+            jsonLogic({"+": [{"date": "2003-01-01"}, {"years": 18}]})
         )
 
     def test_missing(self):
