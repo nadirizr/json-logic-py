@@ -49,6 +49,10 @@ def less(a, b, *args):
     return a < b and (not args or less(b, *args))
 
 
+def apply_relative_delta(year=0, month=0, day=0):
+    return relativedelta(years=year, months=month, days=day)
+
+
 def less_or_equal(a, b, *args):
     """Implements the '<=' operator with JS-style type coertion."""
     return (less(a, b) or soft_equals(a, b)) and (not args or less_or_equal(b, *args))
@@ -177,7 +181,7 @@ operations = {
     "count": lambda *args: sum(1 if a else 0 for a in args),
     "today": lambda *args: date.today(),
     "date": get_date,
-    "years": lambda year: relativedelta(years=year),
+    "rdelta": apply_relative_delta,
 }
 
 
