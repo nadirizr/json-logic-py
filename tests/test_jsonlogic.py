@@ -83,14 +83,31 @@ class JSONLogicTest(unittest.TestCase):
             self.assertEqual(test_date, jsonLogic({"today": []}))
             self.assertTrue(jsonLogic({"==": [{"today": []}, {"date": "2021-10-01"}]}))
 
-    def test_subtract_years_from_dates(self):
+    def test_relative_delta(self):
         self.assertEqual(
-            date(2003, 1, 1), jsonLogic({"-": [{"date": "2021-01-01"}, {"years": 18}]})
+            date(2003, 1, 1),
+            jsonLogic({"-": [{"date": "2021-05-05"}, {"rdelta": [18, 4, 4]}]}),
+        )
+        self.assertEqual(
+            date(2003, 1, 1),
+            jsonLogic({"-": [{"date": "2021-05-01"}, {"rdelta": [18, 4]}]}),
+        )
+        self.assertEqual(
+            date(2003, 1, 1),
+            jsonLogic({"-": [{"date": "2021-01-01"}, {"rdelta": [18]}]}),
         )
 
-    def test_sum_years_from_dates(self):
         self.assertEqual(
-            date(2021, 1, 1), jsonLogic({"+": [{"date": "2003-01-01"}, {"years": 18}]})
+            date(2021, 5, 5),
+            jsonLogic({"+": [{"date": "2003-01-01"}, {"rdelta": [18, 4, 4]}]}),
+        )
+        self.assertEqual(
+            date(2021, 5, 5),
+            jsonLogic({"+": [{"date": "2003-01-05"}, {"rdelta": [18, 4]}]}),
+        )
+        self.assertEqual(
+            date(2021, 5, 5),
+            jsonLogic({"+": [{"date": "2003-05-05"}, {"rdelta": [18]}]}),
         )
 
     def test_missing(self):
