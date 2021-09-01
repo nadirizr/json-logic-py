@@ -180,6 +180,25 @@ operations = {
     "years": lambda year: relativedelta(years=year),
 }
 
+# Operators that will raise an error if one of the operands evaluates to None
+operators_where_none_operand_is_invalid = [
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "%",
+    "log",
+    "+",
+    "*",
+    "-",
+    "/",
+    "min",
+    "max",
+    "count",
+    "date",
+    "years",
+]
+
 
 def jsonLogic(tests, data=None):
     """Executes the json-logic with given data."""
@@ -210,4 +229,10 @@ def jsonLogic(tests, data=None):
     if operator not in operations:
         raise ValueError("Unrecognized operation %s" % operator)
 
+    # Some operators raise errors if operands are None. However, when evaluating without data or with incomplete data,
+    # often variables are None. In this case, the jsonLogic evaluation will return None
+    if operator in operators_where_none_operand_is_invalid and any(
+        [value is None for value in values]
+    ):
+        return None
     return operations[operator](*values)
