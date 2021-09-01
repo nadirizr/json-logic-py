@@ -335,3 +335,12 @@ class JSONLogicTest(unittest.TestCase):
         This can be especially helpful when debugging a large rule.
         """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
+
+    def test_none_values(self):
+        logic1 = {"+": [{"var": "test"}, 1]}
+        logic2 = {">": [{"date": {"var": "test"}}, {"date": "2020-12-01"}]}
+
+        self.assertIsNone(jsonLogic(logic1))
+        self.assertIsNone(jsonLogic(logic1, {}))
+        self.assertIsNone(jsonLogic(logic2))
+        self.assertIsNone(jsonLogic(logic2, {}))
