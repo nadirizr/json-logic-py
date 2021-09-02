@@ -361,3 +361,14 @@ class JSONLogicTest(unittest.TestCase):
         self.assertIsNone(jsonLogic(logic1, {}))
         self.assertIsNone(jsonLogic(logic2))
         self.assertIsNone(jsonLogic(logic2, {}))
+        self.assertIsNone(jsonLogic(logic2, {"test": ""}))
+
+    def test_datetimes_as_dates(self):
+        logic = {
+            ">": [
+                {"date": "2021-09-15T00:00:00+09:00"},
+                {"date": "2021-09-14T00:00:00+00:00"},
+            ]
+        }
+
+        self.assertTrue(jsonLogic(logic))
