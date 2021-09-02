@@ -2,7 +2,7 @@
 # https://github.com/jwadhams/json-logic-js
 
 import logging
-from datetime import date
+from datetime import date, datetime
 from functools import reduce
 
 from dateutil.relativedelta import relativedelta
@@ -120,7 +120,11 @@ def get_var(data, var_name, not_found=None):
 
 
 def get_date(date_str, *args):
-    return date.fromisoformat(date_str)
+    try:
+        return date.fromisoformat(date_str)
+    except ValueError:
+        date_with_time = datetime.fromisoformat(date_str)
+        return date_with_time.date()
 
 
 def missing(data, *args):
@@ -184,24 +188,24 @@ operations = {
     "rdelta": apply_relative_delta,
 }
 
-# Operators that will raise an error if one of the operands evaluates to None
-operators_where_none_operand_is_invalid = [
-    ">",
-    ">=",
-    "<",
-    "<=",
-    "%",
-    "log",
-    "+",
-    "*",
-    "-",
-    "/",
-    "min",
-    "max",
-    "count",
-    "date",
-    "years",
-]
+# Which values to consider as "empty" for the operands of different operators
+empty_operand_values_for_operators = {
+    ">": [None],
+    ">=": [None],
+    "<": [None],
+    "<=": [None],
+    "%": [None],
+    "log": [None],
+    "+": [None],
+    "*": [None],
+    "-": [None],
+    "/": [None],
+    "min": [None],
+    "max": [None],
+    "count": [None],
+    "date": [None, ""],
+    "years": [None],
+}
 
 
 def jsonLogic(tests, data=None):
@@ -233,10 +237,9 @@ def jsonLogic(tests, data=None):
     if operator not in operations:
         raise ValueError("Unrecognized operation %s" % operator)
 
-    # Some operators raise errors if operands are None. However, when evaluating without data or with incomplete data,
-    # often variables are None. In this case, the jsonLogic evaluation will return None
-    if operator in operators_where_none_operand_is_invalid and any(
-        [value is None for value in values]
-    ):
+    # Some operators raise errors if operands are empty. However, when evaluating without data or with incomplete
+    # data, often variables are empty. In this case, the jsonLogic evaluation will return None
+    empty_values = empty_operand_values_for_operators.get(operator)
+    if empty_values and any([value in empty_values for value in values]):
         return None
     return operations[operator](*values)
