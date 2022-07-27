@@ -91,6 +91,40 @@ jsonLogic(rules, data)
 # True
 ```
 
+It is also possible to specify default values for the vars:
+
+```python
+rules = { "var": ["a", 1] }
+
+data = { "b": 2 }
+
+jsonLogic(rules, data)
+# 1
+```
+
+If the value is present but empty, the default value will be used:
+
+```python
+rules = { "var": ["a", 1] }
+
+data = { "a": None, "b": 2 }
+
+jsonLogic(rules, data)
+# 1
+```
+
+This is slightly different behaviour from javascript, where the default is used only if the variable is `undefined`:
+
+```js
+logic = {"var": ["a", 3]};
+data = {"a": undefined};
+jsonLogic.apply(logic, data);
+// 3
+data = {"a": null}
+jsonLogic.apply(logic, data);
+// null
+```
+
 ### Dates
 
 You can use the `date` operator to include dates in the json logic. The dates are internally converted to `datetime.date`
