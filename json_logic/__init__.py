@@ -116,6 +116,8 @@ def get_var(data, var_name, not_found=None):
     except (KeyError, TypeError, ValueError):
         return not_found
     else:
+        if data is None and not_found is not None:
+            return not_found
         return data
 
 
@@ -210,6 +212,9 @@ empty_operand_values_for_operators = {
 
 def jsonLogic(tests, data=None):
     """Executes the json-logic with given data."""
+    if isinstance(tests, list):
+        return [jsonLogic(item, data) for item in tests]
+
     # You've recursed to a primitive, stop!
     if tests is None or not isinstance(tests, dict):
         return tests
