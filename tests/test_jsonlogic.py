@@ -27,6 +27,9 @@ class JSONLogicTest(unittest.TestCase):
         # might be missing in the data object.
         self.assertEqual(jsonLogic({"var": ["z", 26]}, {"a": 1, "b": 2}), 26)
 
+        # If a variable is empty, but you provide a default, the default is used.
+        self.assertEqual(jsonLogic({"var": ["z", 26]}, {"a": 1, "b": 2, "z": None}), 26)
+
         # The key passed to var can use dot-notation to get
         # the property of a property (to any depth you need):
         self.assertEqual(
