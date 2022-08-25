@@ -375,3 +375,18 @@ class JSONLogicTest(unittest.TestCase):
         }
 
         self.assertTrue(jsonLogic(logic))
+
+    def test_var_with_index(self):
+        data = {
+            "cars": [
+                {"colour": "blue", "price": 2000},
+                {"colour": "red", "price": 3000},
+            ]
+        }
+
+        self.assertEqual(
+            {"colour": "blue", "price": 2000}, jsonLogic({"var": "cars.0"}, data)
+        )
+        self.assertEqual("blue", jsonLogic({"var": "cars.0.colour"}, data))
+        self.assertIsNone(jsonLogic({"var": "cars.0.brand"}, data))
+        self.assertIsNone(jsonLogic({"var": "cars.3"}, data))
