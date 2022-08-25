@@ -77,6 +77,21 @@ jsonLogic(
 # "banana"
 ```
 
+And in an array of objects, it is also possible to access elements based on their index (index starting from 0):
+
+```python
+data = {
+    "cars": [
+        {"colour": "blue", "price": 2000},
+        {"colour": "red", "price": 3000},
+    ]
+}
+rule = {"var": "cars.0.colour"}
+
+jsonLogic(rule, data)
+# "blue"
+```
+
 Here's a complex rule that mixes literals and data. The pie isn't ready to eat unless it's cooler than 110 degrees, *and* filled with apples.
 
 ```python
