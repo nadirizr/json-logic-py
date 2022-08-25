@@ -176,6 +176,51 @@ jsonLogic(False, i_wasnt_even_supposed_to_be_here);
 # False
 ```
 
+## Array operations
+
+### Reduce
+
+You can use reduce to combine all the elements in an array into a single value, like adding up a list of numbers. 
+Note, that inside the logic being used to reduce, var operations only have access to an object like:
+
+```
+{
+    "current": # this element of the array,
+    "accumulator": # progress so far, or the initial value
+}
+```
+
+Example to sum a particular element of each item:
+
+```python
+data = {
+    "cars": [
+        {"colour": "blue", "price": 2000},
+        {"colour": "red", "price": 3000},
+    ]
+}
+
+rule = {
+    "reduce": [
+        {"var": "cars"},
+        {"+": [{"var": "accumulator"}, {"var": "current.price"}]},
+        0,
+    ]
+}
+
+jsonLogic(rule, data)
+# 5000
+```
+
+Example to calculate the length of the `cars` array from the previous example:
+
+```python
+rule = {"reduce": [{"var": "cars"}, {"+": [{"var": "accumulator"}, 1]}, 0]}
+
+jsonLogic(rule, data)
+# 2
+```
+
 ## Installation
 
 The best way to install this library is via [PIP](https://pypi.python.org/pypi/):
