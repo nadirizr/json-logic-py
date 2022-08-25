@@ -113,7 +113,7 @@ def get_var(data, var_name, not_found=None):
                 data = data[key]
             except TypeError:
                 data = data[int(key)]
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, IndexError):
         return not_found
     else:
         if data is None and not_found is not None:
