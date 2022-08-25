@@ -18,7 +18,6 @@ class SharedTests(unittest.TestCase):
         unsupported_operators = [
             "filter",
             "map",
-            "reduce",
             "all",
             "none",
             "some",

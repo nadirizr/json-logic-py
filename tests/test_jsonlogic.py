@@ -390,3 +390,32 @@ class JSONLogicTest(unittest.TestCase):
         self.assertEqual("blue", jsonLogic({"var": "cars.0.colour"}, data))
         self.assertIsNone(jsonLogic({"var": "cars.0.brand"}, data))
         self.assertIsNone(jsonLogic({"var": "cars.3"}, data))
+
+    def test_reduce(self):
+        data = {
+            "cars": [
+                {"colour": "blue", "price": 2000},
+                {"colour": "red", "price": 3000},
+            ]
+        }
+
+        rule = {
+            "reduce": [
+                {"var": "cars"},
+                {"+": [{"var": "accumulator"}, {"var": "current.price"}]},
+                0,
+            ]
+        }
+
+        self.assertEqual(5000, jsonLogic(rule, data))
+
+    def test_calculate_array_length(self):
+        data = {
+            "cars": [
+                {"colour": "blue", "price": 2000},
+                {"colour": "red", "price": 3000},
+            ]
+        }
+        rule = {"reduce": [{"var": "cars"}, {"+": [{"var": "accumulator"}, 1]}, 0]}
+
+        self.assertEqual(2, jsonLogic(rule, data))
