@@ -158,6 +158,39 @@ def missing_some(data, min_required, args):
     return ret
 
 
+def apply_reduce(iterable, scoped_logic, initializer):
+    """Calculate reduce
+
+    If the data was
+
+    ```python
+    data = {"cars": [{"colour": "blue", "price": 2000}, {"colour": "red", "price": 3000}]}
+    ```
+    and the rule
+
+    ```python
+    rule = {"reduce": [{"var": "cars"}, {"+": [{"var": "accumulator"}, {"var": "current.price"}]}, 0]}
+    ```
+
+    This function then receives:
+    ```python
+    iterable = [{"colour": "blue", "price": 2000}, {"colour": "red", "price": 3000}]
+    scoped_logic = {"+": [{"var": "accumulator"}, {"var": "current.price"}]}
+    initializer = 0
+    ```
+    """
+    if not isinstance(iterable, list):
+        return initializer
+
+    return reduce(
+        lambda accumulator, current: jsonLogic(
+            scoped_logic, {"accumulator": accumulator, "current": current}
+        ),
+        iterable,
+        initializer,
+    )
+
+
 operations = {
     "==": soft_equals,
     "===": hard_equals,
@@ -188,6 +221,7 @@ operations = {
     "today": lambda *args: date.today(),
     "date": get_date,
     "rdelta": apply_relative_delta,
+    "reduce": apply_reduce,
 }
 
 # Which values to consider as "empty" for the operands of different operators
@@ -238,6 +272,8 @@ def jsonLogic(tests, data=None):
         return missing(data, *values)
     if operator == "missing_some":
         return missing_some(data, *values)
+    if operator == "reduce":
+        return apply_reduce(values[0], tests[operator][1], tests[operator][2])
 
     if operator not in operations:
         raise ValueError("Unrecognized operation %s" % operator)
