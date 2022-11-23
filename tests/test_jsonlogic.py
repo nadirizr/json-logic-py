@@ -2,7 +2,7 @@
 Tests for jsonLogic.
 """
 import unittest
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from freezegun import freeze_time
 
@@ -85,6 +85,42 @@ class JSONLogicTest(unittest.TestCase):
         with freeze_time("2021-10-01"):
             self.assertEqual(test_date, jsonLogic({"today": []}))
             self.assertTrue(jsonLogic({"==": [{"today": []}, {"date": "2021-10-01"}]}))
+
+    def test_datetimes(self):
+        test_datetime = datetime(
+            2022, 11, 1, 10, 00, tzinfo=timezone(timedelta(seconds=7200))
+        )
+
+        self.assertEqual(
+            test_datetime, jsonLogic({"datetime": "2022-11-01T10:00:00.000+02:00"})
+        )
+        self.assertEqual(
+            test_datetime,
+            jsonLogic(
+                {"datetime": {"var": "testDate"}},
+                {"testDate": "2022-11-01T10:00:00.000+02:00"},
+            ),
+        )
+        self.assertTrue(
+            jsonLogic(
+                {
+                    "<=": [
+                        {"datetime": "2022-11-01T10:00:00.000+02:00"},
+                        {"datetime": "2022-12-01T10:00:00.000+02:00"},
+                    ]
+                }
+            )
+        )
+        self.assertTrue(
+            jsonLogic(
+                {
+                    "<=": [
+                        {"datetime": "2022-11-01T15:00:00.000+02:00"},
+                        {"datetime": "2022-11-01T16:00:00.000+02:00"},
+                    ]
+                }
+            )
+        )
 
     def test_relative_delta(self):
         self.assertEqual(
