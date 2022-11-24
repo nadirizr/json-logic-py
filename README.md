@@ -163,6 +163,24 @@ jsonLogic(rule)
 # date(2003, 1, 1)
 ```
 
+### Datetimes
+
+You can use the `datetime` operator to include datetimes in the json logic. The datetimes are internally converted to `datetime.datetime`
+objects, and then the comparison is performed.
+
+```python
+rule = {
+    "<=": [
+        {"datetime": {"var": "testDatetime"}},
+        {"datetime": "2022-12-01T10:00:00.000+02:00"},
+    ]
+}
+data = {"testDatetime": "2022-11-01T10:00:00.000+02:00"}
+
+jsonLogic(rule, data)
+# True
+```
+
 ### Always and Never
 Sometimes the rule you want to process is "Always" or "Never."  If the first parameter passed to `jsonLogic` is a non-object, non-associative-array, it is returned immediately.
 

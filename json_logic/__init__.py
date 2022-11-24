@@ -121,12 +121,21 @@ def get_var(data, var_name, not_found=None):
         return data
 
 
-def get_date(date_str, *args):
+def get_date(value, *args):
+    if isinstance(value, date):
+        return value
+
     try:
-        return date.fromisoformat(date_str)
+        return date.fromisoformat(value)
     except ValueError:
-        date_with_time = datetime.fromisoformat(date_str)
+        date_with_time = datetime.fromisoformat(value)
         return date_with_time.date()
+
+
+def get_datetime(value, *args):
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value)
 
 
 def missing(data, *args):
@@ -220,6 +229,7 @@ operations = {
     "count": lambda *args: sum(1 if a else 0 for a in args),
     "today": lambda *args: date.today(),
     "date": get_date,
+    "datetime": get_datetime,
     "rdelta": apply_relative_delta,
     "reduce": apply_reduce,
 }
