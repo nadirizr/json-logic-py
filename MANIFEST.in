@@ -1,0 +1,6 @@
+include *.rst
+include *.md
+include LICENSE
+include json_logic/py.typed
+global-exclude __pycache__
+global-exclude *.py[co]
