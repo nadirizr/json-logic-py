@@ -100,3 +100,61 @@ def test_complex_expression_into_tree_with_representation():
         """
     ).strip()
     assert repr(tree) == expected_repr
+
+
+def test_complex_expression_into_tree_with_representation2():
+    complex_and = {
+        "and": [
+            {"==": [{"var": "heeftUEenVanDezeUitkeringen.i"}, True]},
+            {
+                "or": [
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.a"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.b"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.c"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.d"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.e"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.f"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.g"}, True]},
+                    {"==": [{"var": "heeftUEenVanDezeUitkeringen.h"}, True]},
+                ]
+            },
+        ]
+    }
+    expression = JSONLogicExpression.from_expression(complex_and)
+    tree = expression.as_tree()
+
+    expected_repr = dedent(
+        """
+        Operation(and)
+          ├─ Operation(==)
+          │    ├─ $heeftUEenVanDezeUitkeringen.i
+          │    └─ True
+          └─ Operation(or)
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.a
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.b
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.c
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.d
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.e
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.f
+               │    └─ True
+               ├─ Operation(==)
+               │    ├─ $heeftUEenVanDezeUitkeringen.g
+               │    └─ True
+               └─ Operation(==)
+                    ├─ $heeftUEenVanDezeUitkeringen.h
+                    └─ True
+
+        """
+    ).strip()
+    assert repr(tree) == expected_repr

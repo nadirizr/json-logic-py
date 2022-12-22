@@ -7,7 +7,6 @@ potential to (statically) analyze JSON logic expressions.
 """
 
 from dataclasses import dataclass, field
-from textwrap import indent
 from typing import Union, cast
 
 from . import operations
@@ -16,17 +15,6 @@ from .typing import JSON, Primitive
 OperationArgument = Union[Primitive, "Operation"]
 
 NormalizedExpression = dict[str, list[JSON]]
-
-
-def _repr_arg(arg: "OperationArgument", prefix: str) -> str:
-    lines = repr(arg).splitlines()
-    assert len(lines) >= 1
-    result = f"{prefix} {lines[0]}"
-    rest = "\n".join(lines[1:])
-    if rest:
-        rest = indent(rest, "  │  ")
-        result = f"{result}\n{rest}"
-    return result
 
 
 @dataclass(repr=False)
@@ -56,17 +44,23 @@ class Operation:
             )
 
     def __repr__(self):
+        bits = [self.op_repr]
+
+        last_index = len(self.arguments) - 1
+        for index, child in enumerate(self.arguments):
+            first_prefix = "  ├─" if index != last_index else "  └─"
+            separator = "  │ " if index != last_index else "    "
+            child_tree = repr(child).splitlines()
+            child_bits = [f"{first_prefix} {child_tree[0]}"] + [
+                f"{separator} {line}" for line in child_tree[1:]
+            ]
+            bits.append("\n".join(child_bits))
+        return "\n".join(bits)
+
+    @property
+    def op_repr(self) -> str:
         clsname = self.__class__.__qualname__
-
-        prefixed_args = [f"{_repr_arg(arg, '  ├─')}" for arg in self.arguments[:-1]] + [
-            f"{_repr_arg(arg, '  └─')}" for arg in self.arguments[-1:]
-        ]
-        args_repr = "\n".join(prefixed_args)
-        op_repr = f"{clsname}({self.operator})"
-
-        if args_repr:
-            op_repr = f"{op_repr}\n{args_repr}"
-        return op_repr
+        return f"{clsname}({self.operator})"
 
     @classmethod
     def for_operator(cls, operator: str, *args, **kwargs):
@@ -143,3 +137,8 @@ class JSONLogicExpression:
 OPERATION_MAP = {
     "var": Var,
 }
+
+
+# TODO: operators
+# missing
+# missing_some
