@@ -111,3 +111,38 @@ def test_complex_expression_into_tree_with_representation2():
         """
     ).strip()
     assert repr(tree) == expected_repr
+
+
+def test_if_elif():
+    expr = {
+        "if": [
+            {"<": [{"var": "temp"}, 0]},
+            "freezing",
+            {"<": [{"var": "temp"}, 100]},
+            "liquid",
+            "gas",
+        ]
+    }
+    expression = JSONLogicExpression.from_expression(expr)
+    tree = expression.as_tree()
+
+    expected_repr = dedent(
+        """
+        Conditional
+          If
+          ├─ Operation(<)
+          │    ├─ $temp
+          │    └─ 0
+          └─ Then
+               └─ 'freezing'
+          Elif
+          ├─ Operation(<)
+          │    ├─ $temp
+          │    └─ 100
+          └─ Then
+               └─ 'liquid'
+          Else
+          └─ 'gas'
+        """
+    ).strip()
+    assert repr(tree) == expected_repr
