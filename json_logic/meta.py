@@ -144,11 +144,11 @@ class JSONLogicExpression:
         return cast(NormalizedExpression, {**expression, operator: values})
 
     @classmethod
-    def from_expression(cls, expression: JSON):
+    def from_expression(cls, expression: JSON) -> "JSONLogicExpression":
         normalized = cls.normalize(expression)
         return cls(normalized)
 
-    def as_tree(self):
+    def as_tree(self) -> Operation | Primitive | list:
         """
         Convert the JSON expression into a tree with Operation nodes.
         """

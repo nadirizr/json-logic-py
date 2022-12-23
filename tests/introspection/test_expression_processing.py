@@ -3,6 +3,7 @@ from textwrap import dedent
 import pytest
 
 from json_logic.meta import JSONLogicExpression, Operation, Var
+from json_logic.typing import Primitive
 
 
 @pytest.mark.parametrize(
@@ -146,3 +147,13 @@ def test_if_elif():
         """
     ).strip()
     assert repr(tree) == expected_repr
+
+
+def test_can_process_shared_tests(shared_test):
+    expr, _, _ = shared_test
+
+    expression = JSONLogicExpression.from_expression(expr)
+
+    assert isinstance(expression, JSONLogicExpression)
+    tree = expression.as_tree()
+    assert isinstance(tree, (Operation, Primitive, list))
