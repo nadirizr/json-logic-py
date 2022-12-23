@@ -150,6 +150,7 @@ def test_if_elif():
     assert repr(tree) == expected_repr
 
 
+@pytest.mark.unsupported_operators(["filter", "map", "all", "none", "some", "substr"])
 def test_can_process_shared_tests(shared_test):
     expr, _, _ = shared_test
 

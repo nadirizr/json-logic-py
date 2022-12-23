@@ -1,50 +1,24 @@
-import json
-import unittest
-from urllib.request import urlopen
+import pytest
 
 from json_logic import jsonLogic
 
 
-class SharedTests(unittest.TestCase):
-    """This runs the tests from http://jsonlogic.com/tests.json."""
-
-    cnt = 0
-
-    @classmethod
-    def create_test(cls, logic, data, expected):
-        """Adds new test to the class."""
-
-        # TODO currently unsupported operators, skip tests
-        unsupported_operators = [
-            "filter",
-            "map",
-            "all",
-            "none",
-            "some",
-            "substr",
-        ]
-        if isinstance(logic, dict):
-            for operator in unsupported_operators:
-                if operator in logic:
-                    return
-
-        # TODO currently unsupported handling of empty variables, skip tests
-        unsupported_logic = [{"var": ""}, {"var": None}, {"var": []}]
-        if logic in unsupported_logic:
-            return
-
-        def test(self):
-            """Actual test function."""
-            self.assertEqual(jsonLogic(logic, data), expected)
-
-        test.__doc__ = "{},  {}  =>  {}".format(logic, data, expected)
-        setattr(cls, "test_{}".format(cls.cnt), test)
-        cls.cnt += 1
-
-
-SHARED_TESTS = json.loads(
-    urlopen("http://jsonlogic.com/tests.json").read().decode("utf-8")
+@pytest.mark.unsupported_operators(["filter", "map", "all", "none", "some", "substr"])
+@pytest.mark.unsupported_logic(
+    [
+        {"var": ""},
+        {"var": None},
+        {"var": []},
+    ]
 )
-for item in SHARED_TESTS:
-    if isinstance(item, list):
-        SharedTests.create_test(*item)
+def test_shared_test(shared_test):
+    """
+    Test the shared JSON tests one-by-one.
+
+    ``logic`` combined with ``data`` must yield ``expected`` result.
+    """
+    logic, data, expected = shared_test
+
+    result = jsonLogic(logic, data)
+
+    assert result == expected

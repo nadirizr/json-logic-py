@@ -40,3 +40,13 @@ class If(Operation):
             ]
 
         return "\n".join(bits)
+
+
+@register("missing")
+class Missing(Operation):
+    _check_registered = False
+
+
+@register("missing_some")
+class MissingSome(Operation):
+    _check_registered = False
