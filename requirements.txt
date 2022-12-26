@@ -4,4 +4,4 @@ requests==2.8.1
 requests-toolbelt==0.5.0
 sh==1.11
 twine==1.6.4
-wheel==0.26.0
+wheel==0.38.1
