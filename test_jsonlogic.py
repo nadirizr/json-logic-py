@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import json
 import unittest
+import sys
+from inspect import *
 try:
     from urllib.request import urlopen
 except ImportError:
@@ -18,7 +20,9 @@ class JSONLogicTest(unittest.TestCase):
     http://jsonlogic.com/operations.html
     """
     def test_var(self):
-        """Retrieve data from the provided data object."""
+        """
+        Retrieve data from the provided data object.
+        """
         self.assertEqual(
             jsonLogic(
                 {"var": ["a"]},
@@ -369,19 +373,29 @@ class SharedTests(unittest.TestCase):
     """This runs the tests from http://jsonlogic.com/tests.json."""
     cnt = 0
     @classmethod
-    def create_test(cls, logic, data, expected):
+    def create_test(cls, group, logic, data, expected):
         """Adds new test to the class."""
         def test(self):
             """Actual test function."""
-            self.assertEqual(jsonLogic(logic, data), expected)
-        test.__doc__ = "{},  {}  =>  {}".format(logic, data, expected)
-        setattr(cls, "test_{}".format(cls.cnt), test)
+            msg = f"""
+                Test Group: {group}
+                Logic: {logic}
+                Data: {data}
+                Expected: {expected}
+            """
+            self.assertEqual(jsonLogic(logic, data), expected, msg=msg)
+        test.__doc__ = f"{group}\n{logic},  {data}  =>  {expected}"
+        test_id = "test_{:03d}_'{}' logic: {}".format(cls.cnt, group, (list(logic.keys())[0] if isinstance(logic, dict) else str(logic)))
+        setattr(cls, test_id, test)
         cls.cnt += 1
 
 
 SHARED_TESTS = json.loads(
     urlopen("http://jsonlogic.com/tests.json").read().decode('utf-8')
 )
+group = ""
 for item in SHARED_TESTS:
     if isinstance(item, list):
-        SharedTests.create_test(*item)
+        SharedTests.create_test(group, *item)
+    elif isinstance(item, str):
+        group = item
