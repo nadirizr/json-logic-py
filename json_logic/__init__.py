@@ -171,6 +171,80 @@ def and_(data, *values):
     return val
 
 
+def filter_(data, values, scoped_logic):
+    """
+    Filter values based on provided logic.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)):
+        return []
+    return [val for val in scoped_data if jsonLogic(scoped_logic, val )]
+
+
+def map_(data, values, scoped_logic):
+    """
+    Map values based on provided logic.
+    Like multiply each element or do lookup.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)):
+        return []
+    return [jsonLogic(scoped_logic, val if isinstance(val, dict) else {"":val} ) for val in scoped_data]
+
+
+def reduce_(data, values, scoped_logic, initial=None):
+    """
+    Reduce list to a single value based on provided logic.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or len(scoped_data) == 0:
+        return initial
+    return reduce(lambda a, b: jsonLogic(scoped_logic, {"current":b, "accumulator":a}), scoped_data, initial)
+
+def all_(data, values, scoped_logic):
+    """
+    Short Circuit AND, returns bool. Stop processing when you get a false value.
+    Empty list returns False.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return False
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if not val:
+            return False
+    return True
+
+
+def none_(data, values, scoped_logic):
+    """
+    Short Circuit NOT, return bool. Stop processing when you get a True value.
+    Empty list returns True.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return True
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if val:
+            return False
+    return True
+
+
+def some_(data, values, scoped_logic):
+    """
+    Short Circuit OR, return bool. Stop processing when you get a True value.
+    Empty list returns False.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return False
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if val:
+            return True
+    return False
+
 
 operations = {
     "==": soft_equals,
@@ -203,6 +277,12 @@ short_circuit_operators = {
     "and": and_,
     "if": if_,
     "?:": if_,
+    "filter": filter_,
+    "map": map_,
+    "reduce": reduce_,
+    "all": all_,
+    "none": none_,
+    "some": some_,
 }
 
 data_operators = {
