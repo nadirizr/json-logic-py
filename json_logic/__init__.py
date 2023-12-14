@@ -75,6 +75,7 @@ def to_numeric(arg):
             return int(arg)
     return arg
 
+
 def plus(*args):
     """Sum converts either to ints or to floats."""
     return sum(to_numeric(arg) for arg in args)
@@ -91,15 +92,17 @@ def merge(*args):
     """Implements the 'merge' operator for merging lists."""
     ret = []
     for arg in args:
-        if isinstance(arg, list) or isinstance(arg, tuple):
+        if isinstance(arg, (list, tuple)):
             ret += list(arg)
         else:
             ret.append(arg)
     return ret
 
 
-def get_var(data, var_name, not_found=None):
+def get_var(data, var_name=None, not_found=None):
     """Gets variable value from data dictionary."""
+    if var_name in ["", None, ()] and not isinstance(data, dict):
+        return data
     try:
         for key in str(var_name).split('.'):
             try:
@@ -167,24 +170,27 @@ operations = {
     "min": lambda *args: min(args),
     "max": lambda *args: max(args),
     "merge": merge,
-    "count": lambda *args: sum(1 if a else 0 for a in args),
+    "count": lambda *args: len(args),
+    "substr": lambda string, offset=None, length=None: string[offset:][:length],
 }
 
 
-def jsonLogic(tests, data=None):
+def jsonLogic(tests, data={}):
     """Executes the json-logic with given data."""
-    # You've recursed to a primitive, stop!
-    if tests is None or not isinstance(tests, dict):
+
+    if isinstance(tests, (list, tuple)):
+        # Recurse Array to process any logic.
+        return [jsonLogic(test, data) for test in tests]
+
+    if not isinstance(tests, dict):
+        # You've recursed to a primitive, stop!
         return tests
 
-    data = data or {}
-
-    operator = list(tests.keys())[0]
-    values = tests[operator]
+    operator, values = next(iter(tests.items()))
 
     # Easy syntax for unary operators, like {"var": "x"} instead of strict
     # {"var": ["x"]}
-    if not isinstance(values, list) and not isinstance(values, tuple):
+    if not isinstance(values, (list, tuple)):
         values = [values]
 
     # Recursion!
@@ -197,7 +203,10 @@ def jsonLogic(tests, data=None):
     if operator == 'missing_some':
         return missing_some(data, *values)
 
-    if operator not in operations:
-        raise ValueError("Unrecognized operation %s" % operator)
+    # Post recursion operators that do NOT use data.
+    if operator in operations:
+        return operations[operator](*values)
 
-    return operations[operator](*values)
+    # Uh oh. We should have found something to do before here.
+    # Invalid JsonLogic.
+    raise ValueError("Unrecognized operation %s" % operator)
