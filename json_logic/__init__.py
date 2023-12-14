@@ -16,14 +16,17 @@ else:
     # Python 2 fallback.
     str = unicode
 
-
-def if_(*args):
-    """Implements the 'if' operator with support for multiple elseif-s."""
+def if_(data, *args):
+    """
+    Implements the 'if' operator with support for multiple elseif-s.
+    Short Circuit, only process branches that you need to go down.
+    Return 'if' or 'else' value as appropriate but None if 'if' condition is false and there is no 'else' value.
+    """
     for i in range(0, len(args) - 1, 2):
-        if args[i]:
-            return args[i + 1]
+        if jsonLogic(args[i], data):
+            return jsonLogic(args[i + 1], data)
     if len(args) % 2:
-        return args[-1]
+        return jsonLogic(args[-1], data)
     else:
         return None
 
@@ -144,6 +147,31 @@ def missing_some(data, min_required, args):
     return ret
 
 
+def or_(data, *values):
+    """
+    Short Circuit OR. Stop processing when you get a True value.
+    Return last value processed.
+    """
+    for val in values:
+        val = jsonLogic(val, data)
+        if val:
+            return val
+    return val
+
+
+def and_(data, *values):
+    """
+    Short Circuit AND. Stop processing when you get a False value.
+    Return last value processed.
+    """
+    for val in values:
+        val = jsonLogic(val, data)
+        if not val:
+            return val
+    return val
+
+
+
 operations = {
     "==": soft_equals,
     "===": hard_equals,
@@ -156,10 +184,6 @@ operations = {
     "!": lambda a: not a,
     "!!": bool,
     "%": lambda a, b: a % b,
-    "and": lambda *args: reduce(lambda total, arg: total and arg, args, True),
-    "or": lambda *args: reduce(lambda total, arg: total or arg, args, False),
-    "?:": lambda a, b, c: b if a else c,
-    "if": if_,
     "log": lambda a: logger.info(a) or a,
     "in": lambda a, b: a in b if "__contains__" in dir(b) else False,
     "cat": lambda *args: "".join(str(arg) for arg in args),
@@ -172,6 +196,19 @@ operations = {
     "merge": merge,
     "count": lambda *args: len(args),
     "substr": lambda string, offset=None, length=None: string[offset:][:length],
+}
+
+short_circuit_operators = {
+    "or": or_,
+    "and": and_,
+    "if": if_,
+    "?:": if_,
+}
+
+data_operators = {
+    "var": get_var,
+    "missing": missing,
+    "missing_some": missing_some,
 }
 
 
@@ -193,15 +230,16 @@ def jsonLogic(tests, data={}):
     if not isinstance(values, (list, tuple)):
         values = [values]
 
+    # Short Circuit operations like "and" that should stop after first negative value.
+    if operator in short_circuit_operators:
+        return short_circuit_operators[operator](data, *values)
+
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
 
-    if operator == 'var':
-        return get_var(data, *values)
-    if operator == 'missing':
-        return missing(data, *values)
-    if operator == 'missing_some':
-        return missing_some(data, *values)
+    # Post recursion operators that use data.
+    if operator in data_operators:
+        return data_operators[operator](data, *values)
 
     # Post recursion operators that do NOT use data.
     if operator in operations:
