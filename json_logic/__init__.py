@@ -16,14 +16,17 @@ else:
     # Python 2 fallback.
     str = unicode
 
-
-def if_(*args):
-    """Implements the 'if' operator with support for multiple elseif-s."""
+def if_(data, *args):
+    """
+    Implements the 'if' operator with support for multiple elseif-s.
+    Short Circuit, only process branches that you need to go down.
+    Return 'if' or 'else' value as appropriate but None if 'if' condition is false and there is no 'else' value.
+    """
     for i in range(0, len(args) - 1, 2):
-        if args[i]:
-            return args[i + 1]
+        if jsonLogic(args[i], data):
+            return jsonLogic(args[i + 1], data)
     if len(args) % 2:
-        return args[-1]
+        return jsonLogic(args[-1], data)
     else:
         return None
 
@@ -75,6 +78,7 @@ def to_numeric(arg):
             return int(arg)
     return arg
 
+
 def plus(*args):
     """Sum converts either to ints or to floats."""
     return sum(to_numeric(arg) for arg in args)
@@ -91,15 +95,17 @@ def merge(*args):
     """Implements the 'merge' operator for merging lists."""
     ret = []
     for arg in args:
-        if isinstance(arg, list) or isinstance(arg, tuple):
+        if isinstance(arg, (list, tuple)):
             ret += list(arg)
         else:
             ret.append(arg)
     return ret
 
 
-def get_var(data, var_name, not_found=None):
+def get_var(data, var_name=None, not_found=None):
     """Gets variable value from data dictionary."""
+    if var_name in ["", None, ()] and not isinstance(data, dict):
+        return data
     try:
         for key in str(var_name).split('.'):
             try:
@@ -141,6 +147,105 @@ def missing_some(data, min_required, args):
     return ret
 
 
+def or_(data, *values):
+    """
+    Short Circuit OR. Stop processing when you get a True value.
+    Return last value processed.
+    """
+    for val in values:
+        val = jsonLogic(val, data)
+        if val:
+            return val
+    return val
+
+
+def and_(data, *values):
+    """
+    Short Circuit AND. Stop processing when you get a False value.
+    Return last value processed.
+    """
+    for val in values:
+        val = jsonLogic(val, data)
+        if not val:
+            return val
+    return val
+
+
+def filter_(data, values, scoped_logic):
+    """
+    Filter values based on provided logic.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)):
+        return []
+    return [val for val in scoped_data if jsonLogic(scoped_logic, val )]
+
+
+def map_(data, values, scoped_logic):
+    """
+    Map values based on provided logic.
+    Like multiply each element or do lookup.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)):
+        return []
+    return [jsonLogic(scoped_logic, val if isinstance(val, dict) else {"":val} ) for val in scoped_data]
+
+
+def reduce_(data, values, scoped_logic, initial=None):
+    """
+    Reduce list to a single value based on provided logic.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or len(scoped_data) == 0:
+        return initial
+    return reduce(lambda a, b: jsonLogic(scoped_logic, {"current":b, "accumulator":a}), scoped_data, initial)
+
+def all_(data, values, scoped_logic):
+    """
+    Short Circuit AND, returns bool. Stop processing when you get a false value.
+    Empty list returns False.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return False
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if not val:
+            return False
+    return True
+
+
+def none_(data, values, scoped_logic):
+    """
+    Short Circuit NOT, return bool. Stop processing when you get a True value.
+    Empty list returns True.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return True
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if val:
+            return False
+    return True
+
+
+def some_(data, values, scoped_logic):
+    """
+    Short Circuit OR, return bool. Stop processing when you get a True value.
+    Empty list returns False.
+    """
+    scoped_data = jsonLogic(values, data)
+    if not isinstance(scoped_data, (list, tuple)) or not scoped_data:
+        return False
+    for val in scoped_data:
+        val = jsonLogic(scoped_logic, val)
+        if val:
+            return True
+    return False
+
+
 operations = {
     "==": soft_equals,
     "===": hard_equals,
@@ -153,10 +258,6 @@ operations = {
     "!": lambda a: not a,
     "!!": bool,
     "%": lambda a, b: a % b,
-    "and": lambda *args: reduce(lambda total, arg: total and arg, args, True),
-    "or": lambda *args: reduce(lambda total, arg: total or arg, args, False),
-    "?:": lambda a, b, c: b if a else c,
-    "if": if_,
     "log": lambda a: logger.info(a) or a,
     "in": lambda a, b: a in b if "__contains__" in dir(b) else False,
     "cat": lambda *args: "".join(str(arg) for arg in args),
@@ -167,37 +268,63 @@ operations = {
     "min": lambda *args: min(args),
     "max": lambda *args: max(args),
     "merge": merge,
-    "count": lambda *args: sum(1 if a else 0 for a in args),
+    "count": lambda *args: len(args),
+    "substr": lambda string, offset=None, length=None: string[offset:][:length],
+}
+
+short_circuit_operators = {
+    "or": or_,
+    "and": and_,
+    "if": if_,
+    "?:": if_,
+    "filter": filter_,
+    "map": map_,
+    "reduce": reduce_,
+    "all": all_,
+    "none": none_,
+    "some": some_,
+}
+
+data_operators = {
+    "var": get_var,
+    "missing": missing,
+    "missing_some": missing_some,
 }
 
 
-def jsonLogic(tests, data=None):
+def jsonLogic(tests, data={}):
     """Executes the json-logic with given data."""
-    # You've recursed to a primitive, stop!
-    if tests is None or not isinstance(tests, dict):
+
+    if isinstance(tests, (list, tuple)):
+        # Recurse Array to process any logic.
+        return [jsonLogic(test, data) for test in tests]
+
+    if not isinstance(tests, dict):
+        # You've recursed to a primitive, stop!
         return tests
 
-    data = data or {}
-
-    operator = list(tests.keys())[0]
-    values = tests[operator]
+    operator, values = next(iter(tests.items()))
 
     # Easy syntax for unary operators, like {"var": "x"} instead of strict
     # {"var": ["x"]}
-    if not isinstance(values, list) and not isinstance(values, tuple):
+    if not isinstance(values, (list, tuple)):
         values = [values]
+
+    # Short Circuit operations like "and" that should stop after first negative value.
+    if operator in short_circuit_operators:
+        return short_circuit_operators[operator](data, *values)
 
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
 
-    if operator == 'var':
-        return get_var(data, *values)
-    if operator == 'missing':
-        return missing(data, *values)
-    if operator == 'missing_some':
-        return missing_some(data, *values)
+    # Post recursion operators that use data.
+    if operator in data_operators:
+        return data_operators[operator](data, *values)
 
-    if operator not in operations:
-        raise ValueError("Unrecognized operation %s" % operator)
+    # Post recursion operators that do NOT use data.
+    if operator in operations:
+        return operations[operator](*values)
 
-    return operations[operator](*values)
+    # Uh oh. We should have found something to do before here.
+    # Invalid JsonLogic.
+    raise ValueError("Unrecognized operation %s" % operator)
