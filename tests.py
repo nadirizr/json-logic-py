@@ -364,6 +364,279 @@ class JSONLogicTest(unittest.TestCase):
         """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
 
+    def test_filter(self):
+        """
+        Filter an array by running a test against each element.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"filter": [
+                    {"var": "integers"},
+                    {"%": [{"var": ""}, 2]}
+                ]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            [1, 3, 5]
+        )
+
+        # Filter with greater than condition
+        self.assertEqual(
+            jsonLogic(
+                {"filter": [
+                    [1, 2, 3, 4, 5],
+                    {">": [{"var": ""}, 2]}
+                ]}
+            ),
+            [3, 4, 5]
+        )
+
+        # Empty array
+        self.assertEqual(
+            jsonLogic({"filter": [[], {">": [{"var": ""}, 2]}]}),
+            []
+        )
+
+        # Non-array returns empty array
+        self.assertEqual(
+            jsonLogic({"filter": ["not_an_array", {">": [{"var": ""}, 2]}]}),
+            []
+        )
+
+    def test_map(self):
+        """
+        Map an array by running a transformation on each element.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"map": [
+                    {"var": "integers"},
+                    {"*": [{"var": ""}, 2]}
+                ]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            [2, 4, 6, 8, 10]
+        )
+
+        # Map with object array
+        self.assertEqual(
+            jsonLogic(
+                {"map": [
+                    {"var": "people"},
+                    {"var": "name"}
+                ]},
+                {"people": [
+                    {"name": "Alice", "age": 30},
+                    {"name": "Bob", "age": 25}
+                ]}
+            ),
+            ["Alice", "Bob"]
+        )
+
+        # Empty array
+        self.assertEqual(
+            jsonLogic({"map": [[], {"*": [{"var": ""}, 2]}]}),
+            []
+        )
+
+        # Non-array returns empty array
+        self.assertEqual(
+            jsonLogic({"map": ["not_an_array", {"*": [{"var": ""}, 2]}]}),
+            []
+        )
+
+    def test_reduce(self):
+        """
+        Reduce an array to a single value using an accumulator.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    {"var": "integers"},
+                    {"+": [{"var": "current"}, {"var": "accumulator"}]},
+                    0
+                ]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            15
+        )
+
+        # Reduce with multiplication
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    [1, 2, 3, 4, 5],
+                    {"*": [{"var": "current"}, {"var": "accumulator"}]},
+                    1
+                ]}
+            ),
+            120
+        )
+
+        # Reduce with string concatenation
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    ["a", "b", "c"],
+                    {"cat": [{"var": "accumulator"}, {"var": "current"}]},
+                    ""
+                ]}
+            ),
+            "abc"
+        )
+
+        # Empty array returns initial value
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    [],
+                    {"+": [{"var": "current"}, {"var": "accumulator"}]},
+                    10
+                ]}
+            ),
+            10
+        )
+
+        # Non-array returns initial value
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    "not_an_array",
+                    {"+": [{"var": "current"}, {"var": "accumulator"}]},
+                    42
+                ]}
+            ),
+            42
+        )
+
+    def test_all(self):
+        """
+        Test if all elements in an array pass a test.
+        """
+        self.assertTrue(
+            jsonLogic(
+                {"all": [
+                    [1, 2, 3],
+                    {">": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        self.assertFalse(
+            jsonLogic(
+                {"all": [
+                    [-1, 2, 3],
+                    {">": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        # All with var reference
+        self.assertTrue(
+            jsonLogic(
+                {"all": [
+                    {"var": "integers"},
+                    {">=": [{"var": ""}, 1]}
+                ]},
+                {"integers": [1, 2, 3]}
+            )
+        )
+
+        # Empty array returns False
+        self.assertFalse(
+            jsonLogic({"all": [[], {">": [{"var": ""}, 0]}]})
+        )
+
+        # Non-array returns False
+        self.assertFalse(
+            jsonLogic({"all": ["not_an_array", {">": [{"var": ""}, 0]}]})
+        )
+
+    def test_none(self):
+        """
+        Test if no elements in an array pass a test.
+        """
+        self.assertTrue(
+            jsonLogic(
+                {"none": [
+                    [1, 2, 3],
+                    {"<": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        self.assertFalse(
+            jsonLogic(
+                {"none": [
+                    [-1, 2, 3],
+                    {"<": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        # None with var reference
+        self.assertTrue(
+            jsonLogic(
+                {"none": [
+                    {"var": "integers"},
+                    {"<": [{"var": ""}, 1]}
+                ]},
+                {"integers": [1, 2, 3]}
+            )
+        )
+
+        # Empty array returns True
+        self.assertTrue(
+            jsonLogic({"none": [[], {"<": [{"var": ""}, 0]}]})
+        )
+
+        # Non-array returns True
+        self.assertTrue(
+            jsonLogic({"none": ["not_an_array", {"<": [{"var": ""}, 0]}]})
+        )
+
+    def test_some(self):
+        """
+        Test if some elements in an array pass a test.
+        """
+        self.assertTrue(
+            jsonLogic(
+                {"some": [
+                    [-1, 0, 1],
+                    {">": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        self.assertFalse(
+            jsonLogic(
+                {"some": [
+                    [-1, -2, -3],
+                    {">": [{"var": ""}, 0]}
+                ]}
+            )
+        )
+
+        # Some with var reference
+        self.assertTrue(
+            jsonLogic(
+                {"some": [
+                    {"var": "integers"},
+                    {">": [{"var": ""}, 2]}
+                ]},
+                {"integers": [1, 2, 3]}
+            )
+        )
+
+        # Empty array returns False
+        self.assertFalse(
+            jsonLogic({"some": [[], {">": [{"var": ""}, 0]}]})
+        )
+
+        # Non-array returns False
+        self.assertFalse(
+            jsonLogic({"some": ["not_an_array", {">": [{"var": ""}, 0]}]})
+        )
+
 
 class SharedTests(unittest.TestCase):
     """This runs the tests from http://jsonlogic.com/tests.json."""

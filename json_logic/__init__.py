@@ -100,6 +100,9 @@ def merge(*args):
 
 def get_var(data, var_name, not_found=None):
     """Gets variable value from data dictionary."""
+    # Empty string or None means return the entire data context
+    if var_name is None or var_name == '':
+        return data
     try:
         for key in str(var_name).split('.'):
             try:
@@ -187,11 +190,71 @@ def jsonLogic(tests, data=None):
     if not isinstance(values, list) and not isinstance(values, tuple):
         values = [values]
 
+    # Array iteration operators need special handling - they should not
+    # recursively evaluate the condition/callback before processing
+    if operator == 'filter':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        if not isinstance(scopedData, list):
+            return []
+        return [item for item in scopedData if jsonLogic(scopedLogic, item)]
+
+    if operator == 'map':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        if not isinstance(scopedData, list):
+            return []
+        return [jsonLogic(scopedLogic, item) for item in scopedData]
+
+    if operator == 'reduce':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        initial = jsonLogic(values[2], data) if len(values) > 2 else None
+        if not isinstance(scopedData, list):
+            return initial
+        accumulator = initial
+        for current in scopedData:
+            accumulator = jsonLogic(
+                scopedLogic,
+                {'current': current, 'accumulator': accumulator}
+            )
+        return accumulator
+
+    if operator == 'all':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        if not isinstance(scopedData, list) or not scopedData:
+            return False
+        for item in scopedData:
+            if not jsonLogic(scopedLogic, item):
+                return False
+        return True
+
+    if operator == 'none':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        if not isinstance(scopedData, list) or not scopedData:
+            return True
+        for item in scopedData:
+            if jsonLogic(scopedLogic, item):
+                return False
+        return True
+
+    if operator == 'some':
+        scopedData = jsonLogic(values[0], data)
+        scopedLogic = values[1]
+        if not isinstance(scopedData, list) or not scopedData:
+            return False
+        for item in scopedData:
+            if jsonLogic(scopedLogic, item):
+                return True
+        return False
+
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
 
     if operator == 'var':
-        return get_var(data, *values)
+        return get_var(data, values[0] if values else None, values[1] if len(values) > 1 else None)
     if operator == 'missing':
         return missing(data, *values)
     if operator == 'missing_some':
