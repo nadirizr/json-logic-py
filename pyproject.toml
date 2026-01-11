@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "json_logic"
+version = "0.8.0"
+description = "Build complex rules, serialize them as JSON, and execute them in Python"
+readme = "README.rst"
+license = {text = "MIT"}
+authors = [
+    {name = "nadir.izr", email = "nadir@soundmindtech.com"}
+]
+keywords = ["json-logic"]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/nadirizr/json-logic-py"
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage"]
+
+[tool.setuptools.packages.find]
+exclude = ["contrib", "docs", "tests"]

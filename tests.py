@@ -1,15 +1,12 @@
 """
 Tests for jsonLogic.
 """
-from __future__ import unicode_literals
 
 import json
 import unittest
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
-from json_logic import jsonLogic
+from urllib.request import urlopen
+
+from json_logic import jsonLogic, add_operation, rm_operation
 
 
 class JSONLogicTest(unittest.TestCase):
@@ -363,6 +360,133 @@ class JSONLogicTest(unittest.TestCase):
         This can be especially helpful when debugging a large rule.
         """
         self.assertEqual(jsonLogic({"log": "apple"}), "apple")
+
+    def test_map(self):
+        """
+        Use map to perform an action on every member of an array.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"map": [{"var": "integers"}, {"*": [{"var": ""}, 2]}]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            [2, 4, 6, 8, 10]
+        )
+
+    def test_filter(self):
+        """
+        Use filter to keep only elements of the array that pass a test.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"filter": [{"var": "integers"}, {"%": [{"var": ""}, 2]}]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            [1, 3, 5]
+        )
+
+    def test_reduce(self):
+        """
+        Use reduce to combine all elements in an array into a single value.
+        """
+        self.assertEqual(
+            jsonLogic(
+                {"reduce": [
+                    {"var": "integers"},
+                    {"+": [{"var": "current"}, {"var": "accumulator"}]},
+                    0
+                ]},
+                {"integers": [1, 2, 3, 4, 5]}
+            ),
+            15
+        )
+
+    def test_all(self):
+        """
+        Test if all elements of array pass a test.
+        """
+        self.assertTrue(
+            jsonLogic({"all": [[1, 2, 3], {">": [{"var": ""}, 0]}]})
+        )
+        self.assertFalse(
+            jsonLogic({"all": [[-1, 0, 1], {">": [{"var": ""}, 0]}]})
+        )
+        # Empty arrays return false
+        self.assertFalse(jsonLogic({"all": [[], {">": [{"var": ""}, 0]}]}))
+
+    def test_some(self):
+        """
+        Test if at least one element of array passes a test.
+        """
+        self.assertTrue(
+            jsonLogic({"some": [[-1, 0, 1], {">": [{"var": ""}, 0]}]})
+        )
+        self.assertFalse(
+            jsonLogic({"some": [[-1, 0, -2], {">": [{"var": ""}, 0]}]})
+        )
+        # Empty arrays return false
+        self.assertFalse(jsonLogic({"some": [[], {">": [{"var": ""}, 0]}]}))
+
+    def test_none(self):
+        """
+        Test if no elements of array pass a test.
+        """
+        self.assertTrue(
+            jsonLogic({"none": [[-3, -2, -1], {">": [{"var": ""}, 0]}]})
+        )
+        self.assertFalse(
+            jsonLogic({"none": [[-1, 0, 1], {">": [{"var": ""}, 0]}]})
+        )
+        # Empty arrays return true for none
+        self.assertTrue(jsonLogic({"none": [[], {">": [{"var": ""}, 0]}]}))
+
+    def test_some_with_objects(self):
+        """
+        Test some with array of objects.
+        """
+        self.assertTrue(
+            jsonLogic(
+                {"some": [{"var": "pies"}, {"==": [{"var": "filling"}, "apple"]}]},
+                {"pies": [
+                    {"filling": "pumpkin", "temp": 110},
+                    {"filling": "rhubarb", "temp": 210},
+                    {"filling": "apple", "temp": 310}
+                ]}
+            )
+        )
+
+    def test_substr(self):
+        """
+        Get a portion of a string.
+        """
+        # Positive start position returns everything from that index
+        self.assertEqual(jsonLogic({"substr": ["jsonlogic", 4]}), "logic")
+        # Negative start position works backwards from the end
+        self.assertEqual(jsonLogic({"substr": ["jsonlogic", -5]}), "logic")
+        # Positive length returns that many characters
+        self.assertEqual(jsonLogic({"substr": ["jsonlogic", 1, 3]}), "son")
+        # Negative length stops that many characters before the end
+        self.assertEqual(jsonLogic({"substr": ["jsonlogic", 4, -2]}), "log")
+
+    def test_add_operation(self):
+        """
+        Test adding a custom operation.
+        """
+        add_operation("times", lambda a, b: a * b)
+        self.assertEqual(jsonLogic({"times": [2, 3]}), 6)
+        self.assertEqual(jsonLogic({"times": [5, 4]}), 20)
+        # Clean up
+        rm_operation("times")
+
+    def test_rm_operation(self):
+        """
+        Test removing an operation.
+        """
+        add_operation("double", lambda a: a * 2)
+        self.assertEqual(jsonLogic({"double": 5}), 10)
+        rm_operation("double")
+        with self.assertRaises(ValueError):
+            jsonLogic({"double": 5})
 
 
 class SharedTests(unittest.TestCase):

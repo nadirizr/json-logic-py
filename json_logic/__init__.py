@@ -1,20 +1,10 @@
 # This is a Python implementation of the following jsonLogic JS library:
 # https://github.com/jwadhams/json-logic-js
-from __future__ import unicode_literals
 
-import sys
-from six.moves import reduce
+from functools import reduce as python_reduce
 import logging
 
 logger = logging.getLogger(__name__)
-
-try:
-    unicode
-except NameError:
-    pass
-else:
-    # Python 2 fallback.
-    str = unicode
 
 
 def if_(*args):
@@ -100,6 +90,9 @@ def merge(*args):
 
 def get_var(data, var_name, not_found=None):
     """Gets variable value from data dictionary."""
+    # Empty string means return the entire data object
+    if var_name == '' or var_name is None:
+        return data
     try:
         for key in str(var_name).split('.'):
             try:
@@ -141,6 +134,19 @@ def missing_some(data, min_required, args):
     return ret
 
 
+def substr(source, start, length=None):
+    """
+    Implements the 'substr' operator.
+    Get a portion of a string.
+    """
+    if length is None:
+        return source[start:]
+    elif length < 0:
+        return source[start:length]
+    else:
+        return source[start:start + length]
+
+
 operations = {
     "==": soft_equals,
     "===": hard_equals,
@@ -153,15 +159,16 @@ operations = {
     "!": lambda a: not a,
     "!!": bool,
     "%": lambda a, b: a % b,
-    "and": lambda *args: reduce(lambda total, arg: total and arg, args, True),
-    "or": lambda *args: reduce(lambda total, arg: total or arg, args, False),
+    "and": lambda *args: python_reduce(lambda total, arg: total and arg, args, True),
+    "or": lambda *args: python_reduce(lambda total, arg: total or arg, args, False),
     "?:": lambda a, b, c: b if a else c,
     "if": if_,
     "log": lambda a: logger.info(a) or a,
     "in": lambda a, b: a in b if "__contains__" in dir(b) else False,
     "cat": lambda *args: "".join(str(arg) for arg in args),
+    "substr": substr,
     "+": plus,
-    "*": lambda *args: reduce(lambda total, arg: total * float(arg), args, 1),
+    "*": lambda *args: python_reduce(lambda total, arg: total * float(arg), args, 1),
     "-": minus,
     "/": lambda a, b=None: a if b is None else float(a) / float(b),
     "min": lambda *args: min(args),
@@ -169,6 +176,24 @@ operations = {
     "merge": merge,
     "count": lambda *args: sum(1 if a else 0 for a in args),
 }
+
+
+def add_operation(name, func):
+    """
+    Add a custom operation to JsonLogic.
+    
+    Example:
+        add_operation("times", lambda a, b: a * b)
+        jsonLogic({"times": [2, 3]})  # Returns 6
+    """
+    operations[name] = func
+
+
+def rm_operation(name):
+    """
+    Remove an operation from JsonLogic.
+    """
+    del operations[name]
 
 
 def jsonLogic(tests, data=None):
@@ -186,6 +211,58 @@ def jsonLogic(tests, data=None):
     # {"var": ["x"]}
     if not isinstance(values, list) and not isinstance(values, tuple):
         values = [values]
+
+    # Special case for array operations that need scoped evaluation
+    # These operations don't pre-evaluate all their arguments
+    if operator == 'map':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        return [jsonLogic(scoped_logic, item) for item in scoped_data]
+
+    if operator == 'filter':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        return [item for item in scoped_data if jsonLogic(scoped_logic, item)]
+
+    if operator == 'reduce':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        initial = jsonLogic(values[2], data) if len(values) > 2 else 0
+        accumulator = initial
+        for item in scoped_data:
+            accumulator = jsonLogic(
+                scoped_logic,
+                {"current": item, "accumulator": accumulator}
+            )
+        return accumulator
+
+    if operator == 'all':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        if not scoped_data:
+            return False
+        for item in scoped_data:
+            if not jsonLogic(scoped_logic, item):
+                return False
+        return True
+
+    if operator == 'some':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        if not scoped_data:
+            return False
+        for item in scoped_data:
+            if jsonLogic(scoped_logic, item):
+                return True
+        return False
+
+    if operator == 'none':
+        scoped_data = jsonLogic(values[0], data)
+        scoped_logic = values[1]
+        for item in scoped_data:
+            if jsonLogic(scoped_logic, item):
+                return False
+        return True
 
     # Recursion!
     values = [jsonLogic(val, data) for val in values]
