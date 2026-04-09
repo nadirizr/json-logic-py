@@ -552,3 +552,22 @@ class JSONLogicTest(unittest.TestCase):
         }
 
         self.assertFalse(jsonLogic(rule, data))
+
+    def test_with_permissive(self):
+        with self.subTest("additional key with underscore"):
+            expression = {"==": [{"var": "foo", "_some": "data"}, "a"]}
+            data = {"foo": "a"}
+            # Not interpreted as data, so evaluates to true.
+            self.assertTrue(jsonLogic(expression, data, True))
+
+        with self.subTest("additional key without underscore"):
+            expression = {"==": [{"var": "foo", "some": "data"}, "a"]}
+            data = {"foo": "a"}
+            # Interpreted as data, so evaluates to false.
+            self.assertFalse(jsonLogic(expression, data, True))
+
+        with self.subTest("invalid map expressions"):
+            expression = {"==": [[{"map": "a"}, {"map": "b"}], []]}
+            data = {}
+            with self.assertRaises(TypeError):
+                jsonLogic(expression, data, True)

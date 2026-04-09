@@ -8,6 +8,8 @@ from functools import reduce
 import isodate
 from dateutil.relativedelta import relativedelta
 
+from .typing import JSON, Object
+
 logger = logging.getLogger(__name__)
 
 
@@ -259,6 +261,10 @@ scoped_operations = {
     "map": apply_map,
 }
 
+ALL_OPERATIONS = {"var", "missing", "missing_some"}.union(operations).union(
+    scoped_operations
+)
+
 # Which values to consider as "empty" for the operands of different operators
 empty_operand_values_for_operators = {
     ">": [None],
@@ -280,18 +286,35 @@ empty_operand_values_for_operators = {
 }
 
 
-def jsonLogic(tests, data=None):
+def is_data(tests: Object):
+    operator_keys = [key for key in tests.keys() if not key.startswith("_")]
+    if len(operator_keys) == 1 and operator_keys[0] in ALL_OPERATIONS:
+        return False
+
+    return True
+
+
+def jsonLogic(tests, data=None, permissive: bool = False) -> JSON:
+    """Executes the json-logic with given data.
+
+    :param tests: JSON logic expression.
+    :param data: The context data.
+    :param permissive: If True, invalid JSON logic expressions will be interpreted as
+      data, instead of crashing hard.
+    """
     from .meta.expressions import destructure
 
-    """Executes the json-logic with given data."""
     if isinstance(tests, list):
-        return [jsonLogic(item, data) for item in tests]
+        return [jsonLogic(item, data, permissive) for item in tests]
 
     # You've recursed to a primitive, stop!
     if tests is None or not isinstance(tests, dict):
         return tests
 
     data = data or {}
+
+    if permissive and is_data(tests):
+        return tests
 
     operator, values = destructure(tests)
 
@@ -304,7 +327,7 @@ def jsonLogic(tests, data=None):
         return scoped_operations[operator](data, *values)
 
     # Recursion!
-    values = [jsonLogic(val, data) for val in values]
+    values = [jsonLogic(val, data, permissive) for val in values]
 
     match operator:
         case "var":
