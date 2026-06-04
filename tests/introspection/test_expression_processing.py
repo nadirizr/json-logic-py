@@ -62,7 +62,8 @@ def test_complex_expression_into_tree_with_representation():
     expression = JSONLogicExpression.from_expression(complex_reduce)
     tree = expression.as_tree()
 
-    expected_repr = dedent("""
+    expected_repr = dedent(
+        """
         Operation(>)
           ├─ Operation(reduce)
           │    ├─ $kinderen
@@ -71,7 +72,8 @@ def test_complex_expression_into_tree_with_representation():
           │    │    └─ 1
           │    └─ 0
           └─ 1
-        """).strip()
+        """
+    ).strip()
     assert repr(tree) == expected_repr
 
 
@@ -96,7 +98,8 @@ def test_complex_expression_into_tree_with_representation2():
     expression = JSONLogicExpression.from_expression(complex_and)
     tree = expression.as_tree()
 
-    expected_repr = dedent("""
+    expected_repr = dedent(
+        """
         Operation(and)
           ├─ Operation(==)
           │    ├─ $heeftUEenVanDezeUitkeringen.i
@@ -127,7 +130,8 @@ def test_complex_expression_into_tree_with_representation2():
                     ├─ $heeftUEenVanDezeUitkeringen.h
                     └─ True
 
-        """).strip()
+        """
+    ).strip()
     assert repr(tree) == expected_repr
 
 
@@ -144,7 +148,8 @@ def test_if_elif():
     expression = JSONLogicExpression.from_expression(expr)
     tree = expression.as_tree()
 
-    expected_repr = dedent("""
+    expected_repr = dedent(
+        """
         Conditional
           If
           ├─ Operation(<)
@@ -160,7 +165,8 @@ def test_if_elif():
                └─ 'liquid'
           Else
           └─ 'gas'
-        """).strip()
+        """
+    ).strip()
     assert repr(tree) == expected_repr
 
 
@@ -170,13 +176,15 @@ def test_map():
     expression = JSONLogicExpression.from_expression(expr)
     tree = expression.as_tree()
 
-    expected_repr = dedent("""
+    expected_repr = dedent(
+        """
         Operation(map)
           ├─ $integers
           └─ Operation(*)
                ├─ $data
                └─ 2
-        """).strip()
+        """
+    ).strip()
     assert repr(tree) == expected_repr
 
 

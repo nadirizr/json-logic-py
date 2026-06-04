@@ -13,6 +13,24 @@ from .typing import JSON, Object
 logger = logging.getLogger(__name__)
 
 
+class UndefinedType:
+    """
+    Sentinel for 'undefined' values.
+
+    Used when `use_var_undefined` is set to True in order to treat None values in a more
+    specific way (JS-style).
+    """
+
+    def __repr__(self):
+        return "undefined"
+
+    def __bool__(self):
+        return False
+
+
+UNDEFINED_VALUE = UndefinedType()
+
+
 def if_(*args):
     """Implements the 'if' operator with support for multiple elseif-s."""
     for i in range(0, len(args) - 1, 2):
@@ -131,10 +149,8 @@ def get_var(data, var_name, not_found=None):
                 data = data[int(key)]
     except (KeyError, TypeError, ValueError, IndexError):
         return not_found
-    else:
-        if data is None and not_found is not None:
-            return not_found
-        return data
+
+    return data
 
 
 def get_date(value, *args):
@@ -156,12 +172,11 @@ def get_datetime(value, *args):
 
 def missing(data, *args):
     """Implements the missing operator for finding missing variables."""
-    not_found = object()
     if args and isinstance(args[0], list):
         args = args[0]
     ret = []
     for arg in args:
-        if get_var(data, arg, not_found) is not_found:
+        if get_var(data, arg, UNDEFINED_VALUE) is UNDEFINED_VALUE:
             ret.append(arg)
     return ret
 
@@ -171,10 +186,9 @@ def missing_some(data, min_required, args):
     if min_required < 1:
         return []
     found = 0
-    not_found = object()
     ret = []
     for arg in args:
-        if get_var(data, arg, not_found) is not_found:
+        if get_var(data, arg, UNDEFINED_VALUE) is UNDEFINED_VALUE:
             ret.append(arg)
         else:
             found += 1
@@ -261,8 +275,8 @@ scoped_operations = {
     "map": apply_map,
 }
 
-ALL_OPERATIONS = (
-    {"var", "missing", "missing_some"}.union(operations).union(scoped_operations)
+ALL_OPERATIONS = {"var", "missing", "missing_some"}.union(operations).union(
+    scoped_operations
 )
 
 # Which values to consider as "empty" for the operands of different operators
@@ -294,7 +308,12 @@ def is_data(tests: Object) -> bool:
     return True
 
 
-def jsonLogic(tests: JSON, data: JSON = None, permissive: bool = False) -> JSON:
+def jsonLogic(
+    tests: JSON,
+    data: JSON = None,
+    permissive: bool = False,
+    use_var_undefined: bool = False,
+):
     """
     Execute the json-logic with given data.
 
@@ -302,6 +321,8 @@ def jsonLogic(tests: JSON, data: JSON = None, permissive: bool = False) -> JSON:
     :param data: The context data.
     :param permissive: If True, invalid JSON logic expressions will be interpreted as
       data, instead of crashing hard.
+    :param use_var_undefined: If True, missing variables will return UNDEFINED_VALUE
+      instead of None.
     """
     from .meta.expressions import destructure
 
@@ -332,7 +353,27 @@ def jsonLogic(tests: JSON, data: JSON = None, permissive: bool = False) -> JSON:
 
     match operator:
         case "var":
-            return get_var(data, *values)
+            if use_var_undefined:
+                # no fallback/default value was provided
+                if len(values) == 1:
+                    return get_var(data, values[0], UNDEFINED_VALUE)
+
+                # with fallback provided
+                result = get_var(data, values[0], UNDEFINED_VALUE)
+
+                # variable is missing or its value is None, return the provided fallback
+                # value
+                if result in (None, UNDEFINED_VALUE):
+                    return values[1]
+
+                # variable exists and contains a real value
+                return result
+
+            result = get_var(data, *values)
+
+            if result is None and len(values) > 1:
+                return values[1]
+            return result
         case "missing":
             return missing(data, *values)
         case "missing_some":

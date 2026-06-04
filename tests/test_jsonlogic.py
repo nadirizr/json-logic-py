@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from freezegun import freeze_time
 
-from json_logic import jsonLogic
+from json_logic import jsonLogic, UNDEFINED_VALUE
 
 
 class JSONLogicTest(unittest.TestCase):
@@ -61,6 +61,57 @@ class JSONLogicTest(unittest.TestCase):
                 },
                 {"temp": 100, "pie": {"filling": "apple"}},
             )
+        )
+
+    def test_var_missing_when_using_undefined_flag(self):
+        # existing var with value
+        self.assertEqual(
+            jsonLogic({"var": "a"}, {"a": 123}, use_var_undefined=True),
+            123,
+        )
+        # var missing
+        self.assertIs(
+            jsonLogic({"var": "missing"}, {}, use_var_undefined=True), UNDEFINED_VALUE
+        )
+        # nested var missing
+        self.assertIs(
+            jsonLogic({"var": "a.b.c"}, {"a": {"b": None}}, use_var_undefined=True),
+            UNDEFINED_VALUE,
+        )
+        # var parent None
+        self.assertIs(
+            jsonLogic({"var": "a.b.c"}, {"a": None}, use_var_undefined=True),
+            UNDEFINED_VALUE,
+        )
+        # data is None
+        self.assertIs(
+            jsonLogic({"var": "a"}, None, use_var_undefined=True),
+            UNDEFINED_VALUE,
+        )
+        # existing var with None value
+        self.assertIsNone(jsonLogic({"var": "a"}, {"a": None}, use_var_undefined=True))
+
+    def test_var_fallback_when_using_undefined_flag(self):
+        # missing var with default value
+        self.assertEqual(
+            jsonLogic({"var": ["a", 123]}, {}, use_var_undefined=True), 123
+        )
+        # missing nested var with default value
+        self.assertEqual(
+            jsonLogic(
+                {"var": ["a.b.c", 123]}, {"a": {"b": None}}, use_var_undefined=True
+            ),
+            123,
+        )
+        # var with default value and different value in data
+        self.assertEqual(
+            jsonLogic({"var": ["a", 123]}, {"a": "keep me"}, use_var_undefined=True),
+            "keep me",
+        )
+        # var with default value and None in the data
+        self.assertEqual(
+            jsonLogic({"var": ["a", 123]}, {"a": None}, use_var_undefined=True),
+            123,
         )
 
     def test_date_operator(self):
