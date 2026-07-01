@@ -65,3 +65,8 @@ class Missing(SkipRegistrationCheck, Operation):
 @register("missing_some")
 class MissingSome(SkipRegistrationCheck, Operation):
     pass
+
+
+@register("substr")
+class SubStr(SkipRegistrationCheck, Operation):
+    pass

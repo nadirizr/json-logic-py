@@ -209,6 +209,12 @@ def missing_some(data, min_required, args):
     return ret
 
 
+def substr(text, start, length):
+    if text is None or text is UNDEFINED_VALUE:
+        return ""
+    return text[start : start + length]
+
+
 def apply_reduce(data, iterable_path, scoped_logic, initializer):
     """Calculate reduce
 
@@ -288,7 +294,9 @@ scoped_operations = {
 }
 
 ALL_OPERATIONS = (
-    {"var", "missing", "missing_some"}.union(operations).union(scoped_operations)
+    {"var", "missing", "missing_some", "substr"}
+    .union(operations)
+    .union(scoped_operations)
 )
 
 # Which values to consider as "empty" for the operands of different operators
@@ -376,6 +384,8 @@ def jsonLogic(
             return missing(data, *values)
         case "missing_some":
             return missing_some(data, *values)
+        case "substr":
+            return substr(*values)
 
     if operator not in operations:
         raise ValueError("Unrecognized operation %s" % operator)

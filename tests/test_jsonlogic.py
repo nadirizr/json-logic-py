@@ -247,6 +247,71 @@ class JSONLogicTest(unittest.TestCase):
             "We require first name, last name, and one phone number.",
         )
 
+    def test_substr(self):
+        # simple rule
+        self.assertEqual(
+            jsonLogic({"substr": [{"var": "a"}, 2, 3]}, {"a": "a string"}), "str"
+        )
+
+        # rule with if statement
+        self.assertEqual(
+            jsonLogic(
+                {
+                    "if": [
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 13]},
+                                "/department1/",
+                            ]
+                        },
+                        "department1@example.com",
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 13]},
+                                "/department2/",
+                            ]
+                        },
+                        "department2@example.com",
+                        "contact@example.com",
+                    ]
+                },
+                {"formUrl": {"page": "/department1/some-other"}},
+            ),
+            "department1@example.com",
+        )
+
+        # rule with if statement and fallback
+        self.assertEqual(
+            jsonLogic(
+                {
+                    "if": [
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 17]},
+                                "/department1/",
+                            ]
+                        },
+                        "department1@example.com",
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 7]},
+                                "/department2/",
+                            ]
+                        },
+                        "department2@example.com",
+                        "contact@example.com",
+                    ]
+                },
+                {"formUrl": {"page": "/department1/contact"}},
+            ),
+            "contact@example.com",
+        )
+
+        # missing text/variable
+        self.assertEqual(jsonLogic({"substr": [{"var": "a"}, 2, 3]}, {}), "")
+        self.assertEqual(jsonLogic({"substr": [{"var": "a"}, 2, 3]}, {"a": None}), "")
+        self.assertEqual(jsonLogic({"substr": [{"var": "a"}, 2, 3]}, {"b": "test"}), "")
+
     def test_if(self):
         """
         The if statement typically takes 3 arguments: a condition (if),
@@ -952,6 +1017,92 @@ class JSONLogicWithVarUndefinedTest(unittest.TestCase):
                 use_var_undefined=True,
             ),
             "We require first name, last name, and one phone number.",
+        )
+
+    def test_substr(self):
+        # simple rule
+        self.assertEqual(
+            jsonLogic({"substr": [{"var": "a"}, 2, 3]}, {"a": "a string"}), "str"
+        )
+        # rule with if statement
+        self.assertEqual(
+            jsonLogic(
+                {
+                    "if": [
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 13]},
+                                "/department1/",
+                            ]
+                        },
+                        "department1@example.com",
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 13]},
+                                "/department2/",
+                            ]
+                        },
+                        "department2@example.com",
+                        "contact@example.com",
+                    ]
+                },
+                {"formUrl": {"page": "/department1/some-other"}},
+                use_var_undefined=True,
+            ),
+            "department1@example.com",
+        )
+        # rule with if statement and fallback
+        self.assertEqual(
+            jsonLogic(
+                {
+                    "if": [
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 17]},
+                                "/department1/",
+                            ]
+                        },
+                        "department1@example.com",
+                        {
+                            "==": [
+                                {"substr": [{"var": "formUrl.page"}, 0, 7]},
+                                "/department2/",
+                            ]
+                        },
+                        "department2@example.com",
+                        "contact@example.com",
+                    ]
+                },
+                {"formUrl": {"page": "/department1/contact"}},
+                use_var_undefined=True,
+            ),
+            "contact@example.com",
+        )
+
+        # missing text/variable
+        self.assertEqual(
+            jsonLogic(
+                {"substr": [{"var": "a"}, 2, 3]},
+                {},
+                use_var_undefined=True,
+            ),
+            "",
+        )
+        self.assertEqual(
+            jsonLogic(
+                {"substr": [{"var": "a"}, 2, 3]},
+                {"a": None},
+                use_var_undefined=True,
+            ),
+            "",
+        )
+        self.assertEqual(
+            jsonLogic(
+                {"substr": [{"var": "a"}, 2, 3]},
+                {"b": "test"},
+                use_var_undefined=True,
+            ),
+            "",
         )
 
     def test_if(self):
